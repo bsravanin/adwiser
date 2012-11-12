@@ -1,0 +1,10 @@
+# All files and directories in a line are treated as one ad_set. Lines starting
+# with Y imply the presence of a D_i in the corresponding HTMLs. Lines starting
+# with N imply the absence of a D_i in the corresponding HTMLs. All other lines
+# are treated as comments.
+
+# Files or directories in a line should be TAB-SEPARATED.
+# Example:
+# Y	ccloudauditor	ccloudauditor/hello world
+
+Y	logs/tests/ccloudauditor/base1
