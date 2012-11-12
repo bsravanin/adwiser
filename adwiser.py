@@ -6,7 +6,7 @@
 #  The sets can be either files or directories.
 
 
-import adParser, os, sys
+import adOps, adParser, os, sys
 
 if len(sys.argv) > 1:
 	adset_file = sys.argv[1]
@@ -68,13 +68,14 @@ afd.close()
 ayes_ad_sets = parse_html_sets(ayes_html_sets)
 noes_ad_sets = parse_html_sets(noes_html_sets)
 
-ayes_uni = adParser.union(ayes_ad_sets)
-ayes_int = adParser.intersection(ayes_ad_sets)
-noes_uni = adParser.union(noes_ad_sets)
-noes_int = adParser.intersection(noes_ad_sets)
+'''
+ayes_uni = adOps.union(ayes_ad_sets)
+ayes_int = adOps.intersection(ayes_ad_sets)
+noes_uni = adOps.union(noes_ad_sets)
+noes_int = adOps.intersection(noes_ad_sets)
 
-rel = adParser.difference(ayes_int, noes_uni)
-irr = adParser.difference(noes_int, ayes_uni)
+rel = adOps.difference(ayes_int, noes_uni)
+irr = adOps.difference(noes_int, ayes_uni)
 
 print "Union of Ys", len(ayes_uni)
 print "Intersection of Ys", len(ayes_int)
@@ -87,7 +88,6 @@ if DEBUG:
 	print "Relevance:", rel
 	print "Irrelevance:", irr
 
-'''
 print "ayes_uni", ayes_uni
 print "ayes_int", ayes_int
 print "noes_uni", noes_uni
