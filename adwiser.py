@@ -1,10 +1,11 @@
 #! /usr/bin/python
-#  Name: Sravan Bhamidipati
-#  Date: 6th November, 2012
-#  Purpose: To do set operations on ads in different directories.
-#  The core operation is "intersection \ union".
-#  The sets can be either files or directories.
-
+'''
+Name: Sravan Bhamidipati
+Date: 12th November, 2012
+Purpose: To do set operations on ads in different directories. The core
+operation is "intersection \ union". The sets can be either files or
+directories.
+'''
 
 import adOps, adParser, os, sys
 
@@ -19,8 +20,8 @@ else:
 	sys.exit(0)
 
 
-# Parse a line in the configuration file for HTML files.
 def parse_line(line):
+	'''Parse a line in the configuration file for HTML files.'''
 	file_set = set()
 	words = line.split("\t")
 	words.pop(0)
@@ -52,10 +53,10 @@ def parse_html_sets(html_sets):
 ayes_html_sets = []
 noes_html_sets = []
 
-''' All files and directories in a line are treated as one ad_set. Lines
+'''All files and directories in a line are treated as one ad_list. Lines
 starting with Y imply the presence of a D_i in the corresponding HTMLs. Lines
 starting with N imply the absence of a D_i in the corresponding HTMLs. All other
-lines are treated as comments. '''
+lines are treated as comments.'''
 afd = open(adset_file, "r")
 for line in afd.readlines():
 	if line.startswith("Y"):
@@ -65,14 +66,13 @@ for line in afd.readlines():
 afd.close()
 
 
-ayes_ad_sets = parse_html_sets(ayes_html_sets)
-noes_ad_sets = parse_html_sets(noes_html_sets)
+ayes_ad_lists = parse_html_sets(ayes_html_sets)
+noes_ad_lists = parse_html_sets(noes_html_sets)
 
-'''
-ayes_uni = adOps.union(ayes_ad_sets)
-ayes_int = adOps.intersection(ayes_ad_sets)
-noes_uni = adOps.union(noes_ad_sets)
-noes_int = adOps.intersection(noes_ad_sets)
+ayes_uni = adOps.union(ayes_ad_lists)
+ayes_int = adOps.intersection(ayes_ad_lists)
+noes_uni = adOps.union(noes_ad_lists)
+noes_int = adOps.intersection(noes_ad_lists)
 
 rel = adOps.difference(ayes_int, noes_uni)
 irr = adOps.difference(noes_int, ayes_uni)
@@ -85,9 +85,10 @@ print "In Ys, but not Ns", len(rel)
 print "In Ns, but not Ys", len(irr)
 
 if DEBUG:
-	print "Relevance:", rel
-	print "Irrelevance:", irr
+	adOps.display_ads(rel)
+	adOps.display_ads(irr)
 
+'''
 print "ayes_uni", ayes_uni
 print "ayes_int", ayes_int
 print "noes_uni", noes_uni

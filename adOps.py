@@ -2,11 +2,21 @@
 '''
 Name: Sravan Bhamidipati
 Date: 12th November, 2012
-Purpose: A library to do operations on sets (lists) of ads.
+Purpose: A library to do operations on collections (lists) of ads.
 '''
 
 from adGlobals import *
 from adObj import AdObj
+
+
+def display_ads(ads, debug=False):
+	'''To print all ads in a collection, which could be an ad or a list of ads
+	or a list of lists of ads.'''
+	if type(ads) == AdObj:
+		ads.display(debug)
+	elif type(ads) == list:
+		for ad in ads:
+			display_ads(ad, debug)
 
 
 def include(ad_list, ad):
@@ -44,8 +54,6 @@ def union(ad_lists):
 		for ad in ad_list:
 			ad_union = include(ad_union, ad)
 
-	for ad in ad_union:
-		ad.display()
 	return ad_union
 
 

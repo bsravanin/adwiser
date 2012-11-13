@@ -6,7 +6,7 @@ Purpose: An object type for Ads and its related operations.
 '''
 
 from adGlobals import *
-import re, urllib
+import re, sys, urllib
 
 
 def is_url(word):
@@ -55,15 +55,17 @@ class AdObj(dict):
 		self.texts = [text.replace(" - - ", " ").lower()]
 
 
-	def display(self):
-		print "=====AD STARTS====="
-		for text in self.texts:
-			print "Text:", text
-		for url in self.displayed_urls:
-			print "URL:", url
-		for url in self.ad_urls:
-			print "Ad URL:", url
-		print "=====AD ENDS====="
+	def display(self, debug=False):
+		display_str = "=====AD STARTS====="
+		display_str += "\nAdURL: " + "\nAdURL: ".join(self.ad_urls)
+		display_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
+		display_str += "\nText: " + "\nText: ".join(self.texts)
+		display_str += "\n                   =====AD ENDS====="
+
+		if debug:
+			print >> sys.stderr, display_str
+		else:
+			print display_str
 
 
 	def compare(self, ad):
@@ -84,5 +86,6 @@ class AdObj(dict):
 	def merge(self, ad):
 		'''Merge another ad object into this ad.'''
 		self.ad_urls = list(set(self.ad_urls) | set(ad.ad_urls))
-		self.displayed_urls = list(set(self.displayed_urls) | set(ad.displayed_urls))
+		self.displayed_urls = list(set(self.displayed_urls) \
+								| set(ad.displayed_urls))
 		self.texts = list(set(self.texts) | set(ad.texts))
