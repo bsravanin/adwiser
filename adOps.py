@@ -44,6 +44,8 @@ def union(ad_lists):
 		for ad in ad_list:
 			ad_union = include(ad_union, ad)
 
+	for ad in ad_union:
+		ad.display()
 	return ad_union
 
 

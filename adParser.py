@@ -36,7 +36,8 @@ class AdParser(HTMLParser):
 	def handle_data(self, data):
 		if self.read == CHECK_READ and ("512" in data or "128" in data):
 			self.read = NO_READ
-			self.ad_list = adOps.include(self.ad_list, AdObj(self.ad_url, self.ad_text))
+			ad = AdObj(self.ad_url, self.ad_text)
+			self.ad_list = adOps.include(self.ad_list, ad)
 			self.ad_text = ""
 			self.ad_url = ""
 		if self.read != NO_READ:
@@ -61,7 +62,8 @@ def parse_html_set(html_set):
 	ad_list = []
 
 	for html_file in html_set:
-		if os.path.isfile(html_file) and "text/html" in magic.from_file(html_file, mime=True):
+		if os.path.isfile(html_file) \
+			and "text/html" in magic.from_file(html_file, mime=True):
 			ad_list.append(parse_html(html_file))
 
 	return adOps.union(ad_list)

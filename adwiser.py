@@ -39,14 +39,14 @@ def parse_line(line):
 	return file_set
 
 
-# Parse a list of HTML sets into a list of ad_sets.
+# Parse a list of HTML sets into a list of ad_lists.
 def parse_html_sets(html_sets):
-	ad_sets = []
+	ad_lists = []
 
 	for html_set in html_sets:
-		ad_sets.append(adParser.parse_html_set(html_set))
+		ad_lists.append(adParser.parse_html_set(html_set))
 
-	return ad_sets
+	return ad_lists
 
 
 ayes_html_sets = []

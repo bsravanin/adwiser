@@ -11,10 +11,28 @@ import re, urllib
 
 def is_url(word):
 	'''Check whether a string is a URL.'''
-	if re.search("\.com|\.edu|\.gov|\.net|\.org", word) or re.search("\.[a-z]+[\.\/]", word):
+	if re.search("\.com|\.edu|\.gov|\.net|\.org", word) \
+		or re.search("\.[a-z]+[\.\/]", word):
 		return True
 	else:
 		return False
+
+
+def clean_url(url):
+	'''To strip URL of unnecessary data. Includes removing Google's ad metadata,
+	removing extra redirection nonsense, removing prepending protocol substring,
+	converting it into a readable lowercase format.'''
+	url = re.sub(r'.*\&adurl=', "", url)
+
+	if "/redir.php" in url:
+		url = re.sub(r'.+redir\.php.+http', "http", url)
+
+	prev_url = ""
+	while url != prev_url:
+		prev_url = url
+		url = urllib.unquote(url)
+
+	return re.sub(r'http[s]?://|www\.|\?.*', "", url).lower().strip("/")
 
 
 class AdObj(dict):
@@ -22,25 +40,19 @@ class AdObj(dict):
 	containing the displayed URLs, googlead URLs, texts.'''
 
 	def __init__(self, url, text):
-		self.ad_urls = []
-		self.displayed_urls = []
-		self.texts = []
-
-		''' From the URL remove Google's ad metadata, extra redirection
-		nonsense, and convert it into a readable lowercase format. '''
-		url = re.sub(r'.*\&adurl=', "", url)
-		if "/redir.php" in url:
-			url = re.sub(r'.*url.*http', "http", url)
-		self.ad_urls.append(urllib.unquote(url).lower())
+		self.ad_urls = [clean_url(url)]
 
 		ad_words = []
+		displayed_urls = set()
 		for word in text.split():
 			if is_url(word):
-				self.displayed_urls.append(word.lower())
+				displayed_urls.add(clean_url(word))
 			else:
-				ad_words.append(word.lower())
+				ad_words.append(word)
 
-		self.texts.append(" ".join(ad_words).replace(" - - ", " "))
+		self.displayed_urls = list(displayed_urls)
+		text = " ".join(ad_words).decode("ascii", "ignore").encode("ascii")
+		self.texts = [text.replace(" - - ", " ").lower()]
 
 
 	def display(self):
@@ -60,15 +72,10 @@ class AdObj(dict):
 		if self.__dict__ == ad.__dict__:
 			return EQUAL
 
-		for url1 in self.ad_urls:
-			for url2 in ad.ad_urls:
-				if url1 == url2:
-					return SIMILAR
-
-		for url1 in self.displayed_urls:
-			for url2 in ad.displayed_urls:
-				if url1 == url2:
-					return SIMILAR
+		if len(set(self.ad_urls) & set(ad.ad_urls)) > 0 \
+			or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
+			or len(set(self.texts) & set(ad.texts)) > 0:
+			return SIMILAR
 
 		# Jacard Index, Many words match, many long words match, etc.
 		return UNEQUAL
@@ -76,14 +83,6 @@ class AdObj(dict):
 
 	def merge(self, ad):
 		'''Merge another ad object into this ad.'''
-		for au in ad.ad_urls:
-			if au not in self.ad_urls:
-				self.ad_urls.append(au)
-
-		for du in ad.displayed_urls:
-			if du not in self.displayed_urls:
-				self.displayed_urls.append(du)
-
-		for t in ad.texts:
-			if t not in self.texts:
-				self.texts.append(t)
+		self.ad_urls = list(set(self.ad_urls) | set(ad.ad_urls))
+		self.displayed_urls = list(set(self.displayed_urls) | set(ad.displayed_urls))
+		self.texts = list(set(self.texts) | set(ad.texts))
