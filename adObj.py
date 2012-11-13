@@ -6,7 +6,7 @@ Purpose: An object type for Ads and its related operations.
 '''
 
 from adGlobals import *
-import pprint, re, urllib
+import re, urllib
 
 
 def is_url(word):

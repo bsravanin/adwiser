@@ -63,9 +63,9 @@ def intersection2(ad_list1, ad_list2):
 	return ad_int
 
 
-''' Return intersection of a list of ad_lists. This isn't a strict set
-intersection. If 2 ads are "similar" we consider them as being "equal". '''
 def intersection(ad_lists):
+	'''Return intersection of a list of ad_lists. This isn't a strict set
+	intersection. If 2 ads are "similar" we merge them.'''
 	if len(ad_lists) == 0:
 		return []
 
