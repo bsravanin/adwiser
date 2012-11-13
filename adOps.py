@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 12th November, 2012
+Date: 13th November, 2012
 Purpose: A library to do operations on collections (lists) of ads.
 '''
 
@@ -17,6 +17,17 @@ def display_ads(ads, debug=False):
 	elif type(ads) == list:
 		for ad in ads:
 			display_ads(ad, debug)
+
+
+def count(ads):
+	'''To count the number of ads in a collection.'''
+	total = 0
+	if type(ads) == AdObj:
+		return 1
+	elif type(ads) == list:
+		for ad in ads:
+			total += count(ad)
+	return total
 
 
 def include(ad_list, ad):

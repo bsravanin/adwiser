@@ -1,10 +1,9 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 12th November, 2012
-Purpose: To do set operations on ads in different directories. The core
-operation is "intersection \ union". The sets can be either files or
-directories.
+Date: 13th November, 2012
+Purpose: To find relevance and irrelevance of Ds. The core operation is
+"intersection \ union". The sets can be either files or directories.
 '''
 
 import adOps, adParser, os, sys
@@ -53,10 +52,10 @@ def parse_html_sets(html_sets):
 ayes_html_sets = []
 noes_html_sets = []
 
-'''All files and directories in a line are treated as one ad_list. Lines
-starting with Y imply the presence of a D_i in the corresponding HTMLs. Lines
-starting with N imply the absence of a D_i in the corresponding HTMLs. All other
-lines are treated as comments.'''
+'''All files and directories in a line with Y/N are treated as one ad_list. Each
+Y/N line is treated as an "account". Y and N don't have a specific meaning about
+presence or absence of D_is. They are just labels to identify 2 different types
+of sets. All other lines are comments.'''
 afd = open(adset_file, "r")
 for line in afd.readlines():
 	if line.startswith("Y"):
@@ -69,7 +68,10 @@ afd.close()
 ayes_ad_lists = parse_html_sets(ayes_html_sets)
 noes_ad_lists = parse_html_sets(noes_html_sets)
 
+
 ayes_uni = adOps.union(ayes_ad_lists)
+adOps.display_ads(ayes_uni)
+sys.exit(0)
 ayes_int = adOps.intersection(ayes_ad_lists)
 noes_uni = adOps.union(noes_ad_lists)
 noes_int = adOps.intersection(noes_ad_lists)
@@ -77,20 +79,15 @@ noes_int = adOps.intersection(noes_ad_lists)
 rel = adOps.difference(ayes_int, noes_uni)
 irr = adOps.difference(noes_int, ayes_uni)
 
-print "Union of Ys", len(ayes_uni)
-print "Intersection of Ys", len(ayes_int)
-print "Union of Ns", len(noes_uni)
-print "Intersection of Ns", len(noes_int)
-print "In Ys, but not Ns", len(rel)
-print "In Ns, but not Ys", len(irr)
+print "Union of Ys", adOps.count(ayes_uni)
+print "Intersection of Ys", adOps.count(ayes_int)
+print "Union of Ns", adOps.count(noes_uni)
+print "Intersection of Ns", adOps.count(noes_int)
+print "In Ys, but not Ns", adOps.count(rel)
+print "In Ns, but not Ys", adOps.count(irr)
 
 if DEBUG:
+	print "\nRELEVANCE"
 	adOps.display_ads(rel)
+	print "\nIRRELEVANCE"
 	adOps.display_ads(irr)
-
-'''
-print "ayes_uni", ayes_uni
-print "ayes_int", ayes_int
-print "noes_uni", noes_uni
-print "noes_int", noes_int
-'''
