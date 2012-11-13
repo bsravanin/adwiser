@@ -17,7 +17,7 @@ def include(ad_list, ad):
 		if comparison == EQUAL:
 			return ad_list
 		elif comparison == SIMILAR:
-			ad_list[i] = ad_list[i].merge(ad)
+			ad_list[i].merge(ad)
 			return ad_list
 
 	ad_list.append(ad)

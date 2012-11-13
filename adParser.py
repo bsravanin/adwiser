@@ -53,15 +53,15 @@ def parse_html(html_file):
 	parser = AdParser()
 	parser.feed(fd.read())
 	fd.close()
-	return parser.get_list()
+	return parser.get_ads()
 
 
 def parse_html_set(html_set):
 	'''Parse a set of HTMLs to get union of ads in them.'''
-	ad_set = []
+	ad_list = []
 
 	for html_file in html_set:
 		if os.path.isfile(html_file) and "text/html" in magic.from_file(html_file, mime=True):
-			ad_set = adOps.union(ad_set, parse_html(html_file))
+			ad_list.append(parse_html(html_file))
 
-	return ad_set
+	return adOps.union(ad_list)
