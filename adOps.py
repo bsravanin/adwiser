@@ -9,14 +9,16 @@ from adGlobals import *
 from adObj import AdObj
 
 
-def display_ads(ads, debug=False):
+def get_ads_str(ads):
 	'''To print all ads in a collection, which could be an ad or a list of ads
 	or a list of lists of ads.'''
+	ads_str = ""
 	if type(ads) == AdObj:
-		ads.display(debug)
+		return ads.get_ad_str()
 	elif type(ads) == list:
 		for ad in ads:
-			display_ads(ad, debug)
+			ads_str += get_ads_str(ad)
+	return ads_str
 
 
 def count(ads):
@@ -92,7 +94,7 @@ def intersection(ad_lists):
 
 	ad_int = ad_lists[0]
 
-	for i in range(1,len(ad_lists)):
+	for i in range(1, len(ad_lists)):
 		ad_int = intersection2(ad_int, ad_lists[i])
 
 	return ad_int

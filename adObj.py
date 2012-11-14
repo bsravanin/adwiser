@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 12th November, 2012
+Date: 13th November, 2012
 Purpose: An object type for Ads and its related operations.
 '''
 
@@ -11,8 +11,8 @@ import re, sys, urllib
 
 def is_url(word):
 	'''Check whether a string is a URL.'''
-	if re.search("\.com|\.edu|\.gov|\.net|\.org", word) \
-		or re.search("\.[a-z]+[\.\/]", word):
+	if re.search(r'\.com|\.edu|\.gov|\.net|\.org', word, re.IGNORECASE) \
+		or re.search("\.[a-z]+[\.\/]", word, re.IGNORECASE):
 		return True
 	else:
 		return False
@@ -48,24 +48,20 @@ class AdObj(dict):
 			if is_url(word):
 				displayed_urls.add(clean_url(word))
 			else:
-				ad_words.append(word)
+				ad_words.append(word.decode("ascii", "ignore").encode("ascii"))
 
 		self.displayed_urls = list(displayed_urls)
-		text = " ".join(ad_words).decode("ascii", "ignore").encode("ascii")
-		self.texts = [text.replace(" - - ", " ").lower()]
+		text = " ".join(ad_words).replace("  ", " ").replace(" - - ", " ")
+		self.texts = [text.lower()]
 
 
-	def display(self, debug=False):
-		display_str = "=====AD STARTS====="
-		display_str += "\nAdURL: " + "\nAdURL: ".join(self.ad_urls)
-		display_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
-		display_str += "\nText: " + "\nText: ".join(self.texts)
-		display_str += "\n                   =====AD ENDS====="
-
-		if debug:
-			print >> sys.stderr, display_str
-		else:
-			print display_str
+	def get_ad_str(self):
+		ad_str = "=====AD STARTS====="
+		ad_str += "\nAdURL: " + "\nAdURL: ".join(self.ad_urls)
+		ad_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
+		ad_str += "\nText: " + "\nText: ".join(self.texts)
+		ad_str += "\n                   =====AD ENDS====="
+		return ad_str
 
 
 	def compare(self, ad):
@@ -75,11 +71,11 @@ class AdObj(dict):
 			return EQUAL
 
 		if len(set(self.ad_urls) & set(ad.ad_urls)) > 0 \
-			or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
 			or len(set(self.texts) & set(ad.texts)) > 0:
 			return SIMILAR
 
 		# Jacard Index, Many words match, many long words match, etc.
+		# or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
 		return UNEQUAL
 
 
