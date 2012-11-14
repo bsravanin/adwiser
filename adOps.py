@@ -81,7 +81,8 @@ def intersection2(ad_list1, ad_list2):
 			if comparison == EQUAL:
 				ad_int = include(ad_int, ad1)
 			elif comparison == SIMILAR:
-				ad_int = include(ad_int, ad1.merge(ad2))
+				ad1.merge(ad2)
+				ad_int = include(ad_int, ad1)
 
 	return ad_int
 

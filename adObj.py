@@ -45,10 +45,11 @@ class AdObj(dict):
 		ad_words = []
 		displayed_urls = set()
 		for word in text.split():
+			word = word.decode("ascii", "ignore").encode("ascii")
 			if is_url(word):
 				displayed_urls.add(clean_url(word))
 			else:
-				ad_words.append(word.decode("ascii", "ignore").encode("ascii"))
+				ad_words.append(word)
 
 		self.displayed_urls = list(displayed_urls)
 		text = " ".join(ad_words).replace("  ", " ").replace(" - - ", " ")
@@ -58,9 +59,12 @@ class AdObj(dict):
 	def get_ad_str(self):
 		ad_str = "=====AD STARTS====="
 		ad_str += "\nAdURL: " + "\nAdURL: ".join(self.ad_urls)
-		ad_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
+		try:
+			ad_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
+		except UnicodeDecodeError:
+			print self.displayed_urls
 		ad_str += "\nText: " + "\nText: ".join(self.texts)
-		ad_str += "\n                   =====AD ENDS====="
+		ad_str += "\n                   =====AD ENDS=====\n"
 		return ad_str
 
 
