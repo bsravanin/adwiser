@@ -1,6 +1,6 @@
 #! /usr/bin/python
 #  Name: Sravan Bhamidipati
-#  Date: 6th November, 2012
+#  Date: 18th November, 2012
 #  Purpose: To populate a Gmail account with some of the emails in the mailbox.
 
 
@@ -10,9 +10,10 @@ if len(sys.argv) == 3:
 	gmail_id = sys.argv[1] + "@gmail.com"
 	thread = sys.argv[2]
 else:
-	print "Usage: python", sys.argv[0], "<GmailID> <all|-threadID>"
-	print "\tall: Populate account with all threads in mailbox."
-	print "\t-threadID: Populate account with all but threadID in mailbox."
+	print "Usage: python", sys.argv[0], "<GmailID> <all|threadID|-threadID>"
+	print "\tall: Populate account with all threads."
+	print "\tthreadID: Populate account with just the threadID."
+	print "\t-threadID: Populate account with all but threadID."
 	sys.exit(-1)
 
 
@@ -49,6 +50,8 @@ my_threads = natural_sort(os.listdir("mailbox"))
 
 if thread == "all":
 	pass
+elif thread in my_threads:
+	my_threads = [thread]
 elif str(int(thread)*-1) in my_threads:
 	my_threads.remove(str(int(thread)*-1))
 else:
