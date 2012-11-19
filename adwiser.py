@@ -1,9 +1,12 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 13th November, 2012
-Purpose: To find relevance and irrelevance of Ds. The core operation is
-"intersection \ union". The sets can be either files or directories.
+Date: 18th November, 2012
+Purpose: To find relevance and irrelevance of Ds. The sets can be either files
+or directories.
+
+18th Nov, 2012: Core operation is signatures.
+13th Nov, 2012: Core operation is "intersection \ union". 
 '''
 
 import adOps, adParser, os, sys
@@ -23,7 +26,7 @@ def parse_line(line):
 	'''Parse a line in the configuration file for HTML files.'''
 	file_set = set()
 	words = line.split("\t")
-	words.pop(0)
+	account = words.pop(0)
 
 	for word in words:
 		if not word.startswith("/"):
@@ -36,65 +39,59 @@ def parse_line(line):
 				for filename in filenames:
 					file_set.add(os.path.join(root, filename))
 
-	return file_set
+	return account, file_set
 
 
-def parse_html_sets(html_sets):
-	'''Parse a list of HTML sets into a list of ad_lists.'''
-	ad_lists = []
+def parse_conf(filename):
+	'''In the config file, lines starting with # are ignored as comments. In
+	other lines, tab is the delimiter, all files and directories are treated as
+	being related to one account, identified by the first word.'''
+	afd = open(filename, "r")
+	accounts = {}
 
-	for html_set in html_sets:
-		ad_lists.append(adParser.parse_html_set(html_set))
+	for line in afd.readlines():
+		line = line.strip()
+		if not line.startswith("#") and line != "":
+			[name, htmls] = parse_line(line.strip())
+			if name in accounts:
+				accounts[name]['html_set'] |= htmls
+			else:
+				accounts[name] = {}
+				accounts[name]['html_set'] = htmls
 
-	return ad_lists
+	afd.close()
 
+	for name in accounts:
+		accounts[name]['ad_list'] = adParser.parse_html_set(accounts[name]['html_set'])
 
-def analyze_html_sets(html_sets, tag):
-	'''Find union and intersection of ad_lists in html_sets.'''
-	ad_lists = parse_html_sets(html_sets)
-	union = adOps.union(ad_lists)
-	intersection = adOps.intersection(ad_lists)
-	print "Union of", tag, ":", adOps.count(union)
-	print "Intersection of", tag, ":", adOps.count(intersection)
-	return union, intersection
-
-
-def save_to_file(filename, ads):
-	fd = open(filename, "w")
-	fd.write(adOps.get_ads_str(ads))
-	fd.flush()
-	fd.close()
+	return accounts
 
 
-ayes_html_sets = []
-noes_html_sets = []
+def signature(ad, accounts, origin=None):
+	'''Returns the set of accounts in which the ad is found.'''
+	sign = set()
 
-'''All files and directories in a line with Y/N are treated as one ad_list. Each
-Y/N line is treated as an "account". Y and N don't have a specific meaning about
-presence or absence of D_is. They are just labels to identify 2 different types
-of sets. All other lines are comments.'''
-afd = open(adset_file, "r")
-for line in afd.readlines():
-	if line.startswith("Y"):
-		ayes_html_sets.append(parse_line(line.strip()))
-	elif line.startswith("N"):
-		noes_html_sets.append(parse_line(line.strip()))
-afd.close()
+	if origin != None:
+		sign.add(origin)
+
+	for name in accounts:
+		if name != origin and adOps.belongs_to(ad, accounts[name]['ad_list']):
+			sign.add(name)
+
+	return sign
 
 
-(ayes_uni, ayes_int) = analyze_html_sets(ayes_html_sets, "Ys")
-(noes_uni, noes_int) = analyze_html_sets(noes_html_sets, "Ns")
+def signatures(accounts):
+	'''Finds the signatures of all ads in all accounts.'''
+	signs = {}
 
-rel = adOps.difference(ayes_int, noes_uni)
-irr = adOps.difference(noes_int, ayes_uni)
+	for name in accounts:
+		for ad in accounts[name]['ad_list']:
+			ad_str = ad.get_ad_str()
+			if ad_str not in signs:
+				signs[ad_str] = signature(ad, accounts, name)
 
-print "In Ys, but not Ns:", adOps.count(rel)
-print "In Ns, but not Ys:", adOps.count(irr)
+	return signs
 
-if DEBUG:
-	save_to_file("ayes_uni.txt", ayes_uni)
-	save_to_file("ayes_int.txt", ayes_int)
-	save_to_file("noes_uni.txt", noes_uni)
-	save_to_file("noes_int.txt", noes_int)
-	save_to_file("rel.txt", rel)
-	save_to_file("irr.txt", irr)
+
+signs = signatures(parse_conf(adset_file))

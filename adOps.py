@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 13th November, 2012
+Date: 18th November, 2012
 Purpose: A library to do operations on collections (lists) of ads.
 '''
 
@@ -110,3 +110,12 @@ def difference(ad_list1, ad_list2):
 		ad_diff = exclude(ad_diff, ad)
 
 	return ad_diff
+
+
+def belongs_to(ad, ad_list):
+	'''Return True if ad belongs to ad_list.'''
+	for a in ad_list:
+		if ad.compare(a) != UNEQUAL:
+			return True
+
+	return False

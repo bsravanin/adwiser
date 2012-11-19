@@ -78,8 +78,11 @@ class AdObj(dict):
 			or len(set(self.texts) & set(ad.texts)) > 0:
 			return SIMILAR
 
-		# Jacard Index, Many words match, many long words match, etc.
+		'''Jacard Index, Many words match, many long words match, etc.
 		# or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
+		If there are common displayed_urls, AND ad_urls/text overlap.
+		'''
+
 		return UNEQUAL
 
 
