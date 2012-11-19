@@ -1,8 +1,10 @@
 #! /usr/bin/python
-#  Name: Sravan Bhamidipati
-#  Date: 7th November, 2012
-#  Purpose: Automate Gmail navigation using Selenium.
-#  TODO: How to tell whether a page, including advertisements, loaded fully?
+'''
+Name: Sravan Bhamidipati
+Date: 7th November, 2012
+Purpose: Automate Gmail navigation using Selenium.
+TODO: How to tell whether a page, including advertisements, loaded fully?
+'''
 
 
 from selenium import webdriver
