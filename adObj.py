@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 13th November, 2012
+Date: 18th November, 2012
 Purpose: An object type for Ads and its related operations.
 '''
 
@@ -33,6 +33,7 @@ def clean_url(url):
 		url = urllib.unquote(url)
 
 	return re.sub(r'http[s]?://|www\.|\?.*', "", url).lower().strip("/")
+	# return url.decode("ascii", "ignore").encode("ascii")
 
 
 class AdObj(dict):
@@ -78,8 +79,9 @@ class AdObj(dict):
 			or len(set(self.texts) & set(ad.texts)) > 0:
 			return SIMILAR
 
-		'''Jacard Index, Many words match, many long words match, etc.
-		# or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
+		'''
+		or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
+		Jacard Index, Many words match, many long words match, etc.
 		If there are common displayed_urls, AND ad_urls/text overlap.
 		'''
 

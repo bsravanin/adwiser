@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 18th November, 2012
+Date: 19th November, 2012
 Purpose: To find relevance and irrelevance of Ds. The sets can be either files
 or directories.
 
@@ -11,14 +11,15 @@ or directories.
 
 import adOps, adParser, os, sys
 
-if len(sys.argv) > 1:
+if len(sys.argv) > 2:
 	adset_file = sys.argv[1]
+	signs_file = sys.argv[2]
 	DEBUG = 0
 
-	if len(sys.argv) > 2:
+	if len(sys.argv) > 3:
 		DEBUG = 1
 else:
-	print "Usage: python", sys.argv[0], "<adset_file> [DEBUG]"
+	print "Usage: python", sys.argv[0], "<adset_file> <signs_file> [DEBUG]"
 	sys.exit(0)
 
 
@@ -84,14 +85,33 @@ def signature(ad, accounts, origin=None):
 def signatures(accounts):
 	'''Finds the signatures of all ads in all accounts.'''
 	signs = {}
+	ad_lists = []
 
 	for name in accounts:
-		for ad in accounts[name]['ad_list']:
-			ad_str = ad.get_ad_str()
-			if ad_str not in signs:
-				signs[ad_str] = signature(ad, accounts, name)
+		ad_lists.append(accounts[name]['ad_list'])
+
+	for ad in adOps.union(ad_lists):
+		signs[ad.get_ad_str()] = signature(ad, accounts)
 
 	return signs
 
 
-signs = signatures(parse_conf(adset_file))
+def save_signatures(signs, filename):
+	'''Write the signatures of all ads in all accounts to a file.'''
+	sfd = open(filename, "w")
+	signs_str = ""
+
+	for sign in signs:
+		signs_str += sign + "Accounts: "
+		for name in sorted(list(signs[sign])):
+			signs_str += name + "\t"
+		signs_str += "\n" + "Count: " + str(len(signs[sign])) + "\n\n\n"
+
+	sfd.write(signs_str)
+	sfd.flush()
+	sfd.close()
+
+
+accounts = parse_conf(adset_file)
+signs = signatures(accounts)
+save_signatures(signs, signs_file)
