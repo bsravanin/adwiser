@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 18th November, 2012
+Date: 19th November, 2012
 Purpose: Automate Gmail navigation using Selenium.
 TODO: How to tell whether a page, including advertisements, loaded fully?
 '''
@@ -10,43 +10,48 @@ TODO: How to tell whether a page, including advertisements, loaded fully?
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import selenium.webdriver.support.ui as ui
-import os, sys, time
+import datetime, os, subprocess, sys, time
 
 if len(sys.argv) > 3:
-	username = sys.argv[1]
-	password = sys.argv[2]
-	save_dir = sys.argv[3]
+	accounts_file = sys.argv[1]
+	log_root = sys.argv[2]
+	trials = int(sys.argv[3])
 else:
-	print "Usage: python", sys.argv[0], "<username> <password> <save_dir>"
+	print "Usage: python", sys.argv[0], "<accounts_file> <log_root> <trials>"
 	sys.exit(0)
 
 
 try:
 	browser = webdriver.Firefox()
-except WebDriverException:
-	time.sleep(10)
-	browser = webdriver.Firefox()
+except:
+	print "Could not open Selenium WebDriver for Firefox."
+	sys.exit(-1)
 
+ts = datetime.datetime
 wait = ui.WebDriverWait(browser, 10)
-LOAD_TIME = 5
+LOAD_TIME = 3
 prev_url = ""
 opened = 0
 
-if not os.path.exists(save_dir):
-	os.makedirs(save_dir)
+
+def get_dirname(dirname, username):
+	'''Create a dirname based on username and timestamp to save the trial.'''
+	timestamp = ts.today()
+	return dirname + "/" + username + "/" + str(timestamp.year) + "-" \
+	+ str(timestamp.month) + "-" + str(timestamp.date) + "_" \
+	+ str(timestamp.hour) + "-" + str(timestamp.minute) + "-" \
+	+ str(timestamp.second)
 
 
-# Save page.
-def save_page(filename):
-	filepath = save_dir + "/" + filename
+def save_page(dirname, filename):
+	filepath = dirname + "/" + filename
 	fd = open(filepath, "w")
 	fd.write(browser.page_source.encode("utf-8"))
 	fd.flush()
 	fd.close()
 
 
-# Login.
-def login(username, password):
+def login(username, password, save_dir):
 	global prev_url
 	browser.get("https://mail.google.com")
 	wait.until(lambda browser: browser.find_element_by_id("signIn"))
@@ -55,12 +60,12 @@ def login(username, password):
 	passwd_id.send_keys(password)
 	passwd_id.submit()
 	wait.until(lambda browser: browser.find_element_by_xpath("//div[@title='Older']"))
-	save_page("inbox.html")
+	save_page(save_dir, "inbox.html")
 	prev_url = browser.current_url.encode("utf-8")
 
 
-# Verify whether click loaded a new page.
 def verify_click():
+	'''Verify whether click loaded a new page.'''
 	global prev_url
 	global opened
 	curr_url = browser.current_url.encode("utf-8")
@@ -73,47 +78,68 @@ def verify_click():
 		return True
 
 
-# Open first email.
-def open_email():
+def open_email(save_dir):
+	'''Open first email.'''
 	browser.find_element_by_xpath("//div[@title='Older']").send_keys("o")
 	time.sleep(LOAD_TIME)
 	if verify_click():
-		save_page("email1.html")
+		save_page(save_dir, "email1.html")
 		return True
 	else:
 		return False
 
 
-# Navigate emails.
-def navigate():
+def navigate(save_dir):
+	'''Navigate emails.'''
 	i = 2
 	while True:
 		browser.find_element_by_xpath("//div[@aria-label='Older Conversation']").click()
 		time.sleep(LOAD_TIME)
 		if verify_click():
 			filename = "email" + str(i) + ".html"
-			save_page(filename)
+			save_page(save_dir, filename)
 			i += 1
 		else:
 			break
 
 
-# Logout.
 def logout():
 	browser.get("https://mail.google.com/mail/?logout&hl=en&hlor")
 	time.sleep(LOAD_TIME)
 
 
-# Quit.
 def quit():
 	browser.close()
 	browser.delete_all_cookies()
-	browser.quit()
-	os.system("rm -rf /tmp/tmp*")
 
 
-login(username, password)
-if open_email():
-	navigate()
-logout()
-quit()
+def get_accounts(filename):
+	'''Read account usernames and passwords into a dict.'''
+	accounts = {}
+	fd = open(filename, "r")
+	for line in fd.readlines():
+		[username, password] = line.strip().split()
+		accounts[username] = password
+	fd.close()
+	return accounts
+
+
+def run_trials(accounts, trials):
+	'''Run a bunch of trials on every account.'''
+	for i in range(trials):
+		for username in sorted(accounts.iterkeys()):
+			print ts.today(), "Trial", i, "for", username
+
+			save_dir = get_dirname(log_root, username)
+			if not os.path.exists(save_dir):
+				os.makedirs(save_dir)
+
+			login(username, accounts[username], save_dir)
+			if open_email(save_dir):
+				navigate(save_dir)
+			logout()
+			quit()
+
+
+accounts = get_accounts(accounts_file)
+run_trials(accounts, trials)
