@@ -16,11 +16,14 @@ else:
 	sys.exit(-1)
 
 
+ts = datetime.datetime
+
+
 def get_accounts(filename):
 	'''Read account usernames and passwords into a dict.'''
 	accounts = {}
 	fd = open(filename, "r")
-	while line in fd.readlines():
+	for line in fd.readlines():
 		[username, password] = line.strip().split()
 		accounts[username] = password
 	fd.close()
@@ -28,19 +31,22 @@ def get_accounts(filename):
 
 
 def get_filename(dirname, username):
-	timestamp = datetime.datetime.today()
-	return dirname + "/" + account[username] + "/" + timestamp.year + "-" \
-	+ timestamp.month + "-" + timestamp.date + "_" + timestamp.hour + "-" \
-	+ timestamp.minute + "-" + timestamp.second
+	'''Create a filename based on username and timestamp to save the trial.'''
+	timestamp = ts.today()
+	return dirname + "/" + username + "/" + str(timestamp.year) + "-" \
+	+ str(timestamp.month) + "-" + str(timestamp.date) + "_" \
+	+ str(timestamp.hour) + "-" + str(timestamp.minute) + "-" \
+	+ str(timestamp.second)
 
 
 def run_trials(accounts, trials):
+	'''Run a bunch of trials on every account.'''
 	for i in range(trials):
-		for account in accounts:
-			print "Trial", i, "for", accounts[username]
-			save_file = get_filename(save_dir, account[username])
-			subprocess.call(["python", "automate.py", account[username], \
-							account[password], save_file])
+		for username in sorted(accounts.iterkeys()):
+			print ts.today(), "Trial", i, "for", username
+			save_file = get_filename(save_dir, username)
+			subprocess.call(["python", "automate.py", username, \
+							accounts[username], save_file])
 
 
 accounts = get_accounts(accounts_file)

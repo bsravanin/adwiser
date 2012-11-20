@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 7th November, 2012
+Date: 18th November, 2012
 Purpose: Automate Gmail navigation using Selenium.
 TODO: How to tell whether a page, including advertisements, loaded fully?
 '''
@@ -21,7 +21,12 @@ else:
 	sys.exit(0)
 
 
-browser = webdriver.Firefox()
+try:
+	browser = webdriver.Firefox()
+except WebDriverException:
+	time.sleep(10)
+	browser = webdriver.Firefox()
+
 wait = ui.WebDriverWait(browser, 10)
 LOAD_TIME = 5
 prev_url = ""
@@ -60,7 +65,7 @@ def verify_click():
 	global opened
 	curr_url = browser.current_url.encode("utf-8")
 	if prev_url == curr_url:
-		print "Opened", opened, "URLs. No emails to open."
+		print "Opened", opened, "URLs. No more emails to open."
 		return False
 	else:
 		opened += 1
@@ -104,6 +109,7 @@ def quit():
 	browser.close()
 	browser.delete_all_cookies()
 	browser.quit()
+	os.system("rm -rf /tmp/tmp*")
 
 
 login(username, password)
