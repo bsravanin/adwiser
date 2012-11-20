@@ -29,7 +29,7 @@ except:
 
 ts = datetime.datetime
 wait = ui.WebDriverWait(browser, 10)
-LOAD_TIME = 3
+LOAD_TIME = 5
 prev_url = ""
 opened = 0
 
@@ -38,7 +38,7 @@ def get_dirname(dirname, username):
 	'''Create a dirname based on username and timestamp to save the trial.'''
 	timestamp = ts.today()
 	return dirname + "/" + username + "/" + str(timestamp.year) + "-" \
-	+ str(timestamp.month) + "-" + str(timestamp.date) + "_" \
+	+ str(timestamp.month) + "-" + str(timestamp.day) + "_" \
 	+ str(timestamp.hour) + "-" + str(timestamp.minute) + "-" \
 	+ str(timestamp.second)
 
@@ -80,7 +80,12 @@ def verify_click():
 
 def open_email(save_dir):
 	'''Open first email.'''
-	browser.find_element_by_xpath("//div[@title='Older']").send_keys("o")
+	try:
+		browser.find_element_by_xpath("//div[@title='Older']").send_keys("o")
+	except:
+		print "Couldn't find element. Skipping."
+		return False
+
 	time.sleep(LOAD_TIME)
 	if verify_click():
 		save_page(save_dir, "email1.html")
@@ -93,7 +98,12 @@ def navigate(save_dir):
 	'''Navigate emails.'''
 	i = 2
 	while True:
-		browser.find_element_by_xpath("//div[@aria-label='Older Conversation']").click()
+		try:
+			browser.find_element_by_xpath("//div[@aria-label='Older Conversation']").click()
+		except:
+			print "Couldn't find element. Skipping."
+			break
+
 		time.sleep(LOAD_TIME)
 		if verify_click():
 			filename = "email" + str(i) + ".html"
@@ -106,10 +116,6 @@ def navigate(save_dir):
 def logout():
 	browser.get("https://mail.google.com/mail/?logout&hl=en&hlor")
 	time.sleep(LOAD_TIME)
-
-
-def quit():
-	browser.close()
 	browser.delete_all_cookies()
 
 
@@ -126,6 +132,7 @@ def get_accounts(filename):
 
 def run_trials(accounts, trials):
 	'''Run a bunch of trials on every account.'''
+	global prev_url
 	for i in range(trials):
 		for username in sorted(accounts.iterkeys()):
 			print ts.today(), "Trial", i, "for", username
@@ -134,11 +141,11 @@ def run_trials(accounts, trials):
 			if not os.path.exists(save_dir):
 				os.makedirs(save_dir)
 
+			prev_url = ""
 			login(username, accounts[username], save_dir)
 			if open_email(save_dir):
 				navigate(save_dir)
 			logout()
-			quit()
 
 
 accounts = get_accounts(accounts_file)
