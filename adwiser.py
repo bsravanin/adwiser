@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 19th November, 2012
+Date: 20th November, 2012
 Purpose: To find relevance and irrelevance of Ds. The sets can be either files
 or directories.
 
@@ -96,6 +96,38 @@ def signatures(accounts):
 	return signs
 
 
+def read_truth():
+	'''Return a dictionary of truth DB.'''
+	fd = open("truth.db", "r")
+	truth = {}
+
+	for line in fd.readlines():
+		if not line.startswith("#"):
+			words = line.strip().split("\t")
+			if len(words) == 2:
+				truth[words[0]] = words[1]
+
+	fd.close()
+	return truth
+
+
+def analyze_signatures(signs, truth):
+	'''Find the precision and recall of ads.'''
+	# [tps, fps, tns, fns] = [0, 0, 0, 0]
+	errors = 0
+
+	for sign in signs:
+		for t in truth:
+			if t in sign:
+				if "No" + str(truth[t]) in signs[sign]:
+					errors += 1
+				else:
+					print "Correctly found ad in", len(signs[sign]), "accounts."
+				break
+
+	print "Errors:", errors
+
+
 def save_signatures(signs, filename):
 	'''Write the signatures of all ads in all accounts to a file.'''
 	sfd = open(filename, "w")
@@ -114,4 +146,5 @@ def save_signatures(signs, filename):
 
 accounts = parse_conf(adset_file)
 signs = signatures(accounts)
+analyze_signatures(signs, read_truth())
 save_signatures(signs, signs_file)

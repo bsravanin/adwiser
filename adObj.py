@@ -33,7 +33,6 @@ def clean_url(url):
 		url = urllib.unquote(url)
 
 	return re.sub(r'http[s]?://|www\.|\?.*', "", url).lower().strip("/")
-	# return url.decode("ascii", "ignore").encode("ascii")
 
 
 class AdObj(dict):
