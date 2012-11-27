@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 19th November, 2012
+Date: 26th November, 2012
 Purpose: Automate Gmail navigation using Selenium.
 TODO: How to tell whether a page, including advertisements, loaded fully?
 '''
@@ -132,9 +132,11 @@ def get_accounts(filename):
 
 def run_trials(accounts, trials):
 	'''Run a bunch of trials on every account.'''
+	global opened
 	global prev_url
 	for i in range(trials):
 		for username in sorted(accounts.iterkeys()):
+			opened = 0
 			print ts.today(), "Trial", i, "for", username
 
 			save_dir = get_dirname(log_root, username)

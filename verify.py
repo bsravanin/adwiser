@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 25th November, 2012
+Date: 26th November, 2012
 Purpose: Verify whether a trial was okay or not.
 '''
 
@@ -20,7 +20,8 @@ def get_trials(trial_root):
 
 	if os.path.isdir(trial_root):
 		for root, dirnames, filenames in os.walk(trial_root):
-			trial_set.add(root)
+			if len(filenames) > 0:
+				trial_set.add(root)
 
 	return trial_set
 
