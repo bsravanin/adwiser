@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 26th November, 2012
+Date: 27th November, 2012
 Purpose: Automate Gmail navigation using Selenium.
 TODO: How to tell whether a page, including advertisements, loaded fully?
 '''
@@ -59,6 +59,11 @@ def login(username, password, save_dir):
 	passwd_id = browser.find_element_by_id("Passwd")
 	passwd_id.send_keys(password)
 	passwd_id.submit()
+	
+	# if "AccountRecoveryOptionsPrompt" in browser.current_url.encode("utf-8"):
+		# save_id = wait.until(lambda browser: browser.find_element_by_id("save"))
+		# save_id.submit()
+
 	wait.until(lambda browser: browser.find_element_by_xpath("//div[@title='Older']"))
 	save_page(save_dir, "inbox.html")
 	prev_url = browser.current_url.encode("utf-8")
@@ -99,7 +104,10 @@ def navigate(save_dir):
 	i = 2
 	while True:
 		try:
-			browser.find_element_by_xpath("//div[@aria-label='Older Conversation']").click()
+			if "ccloudauditor13" in save_dir:
+				browser.find_element_by_xpath("//div[@aria-label='Older']").click()
+			else:
+				browser.find_element_by_xpath("//div[@aria-label='Older Conversation']").click()
 		except:
 			print "Couldn't find element. Skipping."
 			break
