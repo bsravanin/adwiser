@@ -40,6 +40,7 @@ class AdObj(dict):
 	containing the displayed URLs, googlead URLs, texts.'''
 
 	def __init__(self, url, text, username):
+		self.accounts = [username]
 		self.ad_urls = [clean_url(url)]
 
 		ad_words = []
@@ -50,22 +51,23 @@ class AdObj(dict):
 				displayed_urls.add(clean_url(word))
 			else:
 				ad_words.append(word)
-
 		self.displayed_urls = list(displayed_urls)
+
 		text = " ".join(ad_words).replace("  ", " ").replace(" - - ", " ")
 		self.texts = [text.lower()]
-		self.accounts = [username]
 
 
 	def get_ad_str(self):
 		ad_str = "=====AD STARTS====="
+		ad_str += "\nAccount: " + "\nAccount: ".join(self.accounts)
 		ad_str += "\nAdURL: " + "\nAdURL: ".join(self.ad_urls)
+
 		try:
 			ad_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
 		except UnicodeDecodeError:
-			print "UnicodeDecodeError", self.displayed_urls
+			print "DEBUG UnicodeDecodeError", self.displayed_urls
+
 		ad_str += "\nText: " + "\nText: ".join(self.texts)
-		ad_str += "\nAccount: " + "\nAccount: ".join(self.accounts)
 		ad_str += "\n                   =====AD ENDS=====\n"
 		return ad_str
 
@@ -91,6 +93,7 @@ class AdObj(dict):
 
 	def merge(self, ad):
 		'''Merge another ad object into this ad.'''
+		self.accounts = list(set(self.accounts) | set(ad.accounts))
 		self.ad_urls = list(set(self.ad_urls) | set(ad.ad_urls))
 		self.displayed_urls = list(set(self.displayed_urls) \
 								| set(ad.displayed_urls))

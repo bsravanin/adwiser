@@ -97,34 +97,6 @@ def signatures(accounts):
 	return signs
 
 
-def read_truth():
-	'''Return a dictionary of truth DB.'''
-	fd = open("truth.db", "r")
-	truth = {}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			truth[words[0]] = frozenset(words[1:])
-
-	fd.close()
-	return truth
-
-
-def read_account_truth():
-	'''Return a dictionary of account truths.'''
-	fd = open("setup.db", "r")
-	account_truth = {}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			account_truth[words[0]] = frozenset(words[1:])
-
-	fd.close()
-	return account_truth
-
-
 def anal_sign(signature, truth, account_truth):
 	'''Determine number of TPs, FPs, TNs, FNs in ad signature.'''
 	result = {}
@@ -258,7 +230,8 @@ if DEBUG:
 	fd.flush()
 	fd.close()
 
-analyzed_signs = analyze_signatures(signs, read_truth(), read_account_truth())
+analyzed_signs = analyze_signatures(signs, adParser.parse_ad_truth(), \
+					adParser.parse_account_truth())
 
 if not os.path.isdir(results_dir):
 	if os.path.exists(results_dir):

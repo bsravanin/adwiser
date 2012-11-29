@@ -81,3 +81,31 @@ def parse_html_set(html_set):
 			ad_list.append(parse_html(html_file))
 
 	return adOps.union(ad_list)
+
+
+def parse_ad_truth():
+	'''Return a dictionary of Ad truth.'''
+	fd = open(AD_TRUTH, "r")
+	ad_truth = {}
+
+	for line in fd.readlines():
+		if not line.startswith("#"):
+			words = line.strip().split("\t")
+			ad_truth[words[0]] = frozenset(words[1:])
+
+	fd.close()
+	return ad_truth
+
+
+def parse_account_truth():
+	'''Return a dictionary of Account truth.'''
+	fd = open(ACCOUNT_TRUTH, "r")
+	account_truth = {}
+
+	for line in fd.readlines():
+		if not line.startswith("#"):
+			words = line.strip().split("\t")
+			account_truth[words[0]] = frozenset(words[1:])
+
+	fd.close()
+	return account_truth
