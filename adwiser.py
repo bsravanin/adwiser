@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 20th November, 2012
+Date: 28th November, 2012
 Purpose: To find relevance and irrelevance of Ds. The sets can be either files
 or directories.
 
@@ -15,8 +15,12 @@ import adOps, adParser, os, pylab, sys
 if len(sys.argv) > 2:
 	adset_file = sys.argv[1]
 	results_dir = sys.argv[2]
+	DEBUG = 0
+
+	if len(sys.argv) > 3:
+		DEBUG = 1
 else:
-	print "Usage: python", sys.argv[0], "<adset_file> <results_dir>"
+	print "Usage: python", sys.argv[0], "<adset_file> <results_dir> [DEBUG]"
 	sys.exit(0)
 
 
@@ -37,7 +41,6 @@ def parse_line(line):
 				for filename in filenames:
 					file_set.add(os.path.join(root, filename))
 
-	print file_set
 	return account, file_set
 
 
@@ -245,8 +248,16 @@ def gen_plots(analyzed_signs, results_dir):
 
 accounts = parse_conf(adset_file)
 signs = signatures(accounts)
-for ad_str in signs:
-	print ad_str
+
+if DEBUG:
+	fd.open("debug.txt", "w")
+	ad_strs = ""
+	for ad_str in signs:
+		ad_strs += ad_str + "\n"
+	fd.write(ad_strs)
+	fd.flush()
+	fd.close()
+
 analyzed_signs = analyze_signatures(signs, read_truth(), read_account_truth())
 
 if not os.path.isdir(results_dir):

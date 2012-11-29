@@ -39,7 +39,7 @@ class AdObj(dict):
 	'''An ad is an extended dictionary corresponding to equal/similar Google Ads
 	containing the displayed URLs, googlead URLs, texts.'''
 
-	def __init__(self, url, text):
+	def __init__(self, url, text, username):
 		self.ad_urls = [clean_url(url)]
 
 		ad_words = []
@@ -54,6 +54,7 @@ class AdObj(dict):
 		self.displayed_urls = list(displayed_urls)
 		text = " ".join(ad_words).replace("  ", " ").replace(" - - ", " ")
 		self.texts = [text.lower()]
+		self.accounts = [username]
 
 
 	def get_ad_str(self):
@@ -62,8 +63,9 @@ class AdObj(dict):
 		try:
 			ad_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
 		except UnicodeDecodeError:
-			print self.displayed_urls
+			print "UnicodeDecodeError", self.displayed_urls
 		ad_str += "\nText: " + "\nText: ".join(self.texts)
+		ad_str += "\nAccount: " + "\nAccount: ".join(self.accounts)
 		ad_str += "\n                   =====AD ENDS=====\n"
 		return ad_str
 
