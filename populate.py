@@ -1,7 +1,9 @@
 #! /usr/bin/python
-#  Name: Sravan Bhamidipati
-#  Date: 18th November, 2012
-#  Purpose: To populate a Gmail account with some of the emails in the mailbox.
+'''
+Name: Sravan Bhamidipati
+Date: 18th November, 2012
+Purpose: To populate a Gmail account with some of the emails in the mailbox.
+'''
 
 
 import os, re, subprocess, sys, time

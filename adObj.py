@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 18th November, 2012
+Date: 29th November, 2012
 Purpose: An object type for Ads and its related operations.
 '''
 
@@ -59,15 +59,15 @@ class AdObj(dict):
 
 	def get_ad_str(self):
 		ad_str = "=====AD STARTS====="
-		ad_str += "\nAccount: " + "\nAccount: ".join(self.accounts)
-		ad_str += "\nAdURL: " + "\nAdURL: ".join(self.ad_urls)
+		ad_str += "\nAccount: " + "\nAccount: ".join(sorted(self.accounts))
+		ad_str += "\nAdURL: " + "\nAdURL: ".join(sorted(self.ad_urls))
 
 		try:
-			ad_str += "\nURL: " + "\nURL: ".join(self.displayed_urls)
+			ad_str += "\nURL: " + "\nURL: ".join(sorted(self.displayed_urls))
 		except UnicodeDecodeError:
 			print "DEBUG UnicodeDecodeError", self.displayed_urls
 
-		ad_str += "\nText: " + "\nText: ".join(self.texts)
+		ad_str += "\nText: " + "\nText: ".join(sorted(self.texts))
 		ad_str += "\n                   =====AD ENDS=====\n"
 		return ad_str
 

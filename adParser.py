@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 29th November, 2012
+Date: 30th November, 2012
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
@@ -83,29 +83,43 @@ def parse_html_set(html_set):
 	return adOps.union(ad_list)
 
 
-def parse_ad_truth():
-	'''Return a dictionary of Ad truth.'''
-	fd = open(AD_TRUTH, "r")
-	ad_truth = {}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			ad_truth[words[0]] = frozenset(words[1:])
-
-	fd.close()
-	return ad_truth
-
-
 def parse_account_truth():
-	'''Return a dictionary of Account truth.'''
+	'''Return a dictionary of Account truth: for each d_i, its accounts.'''
 	fd = open(ACCOUNT_TRUTH, "r")
+	all_accounts = set()
 	account_truth = {}
 
 	for line in fd.readlines():
 		if not line.startswith("#"):
 			words = line.strip().split("\t")
-			account_truth[words[0]] = frozenset(words[1:])
+			all_accounts.add(words[0])
+
+			for d_i in words[1:]:
+				if d_i in account_truth:
+					account_truth[d_i].add(words[0])
+				else:
+					account_truth[d_i] = set([words[0]])
 
 	fd.close()
+	account_truth["ALL"] = all_accounts
 	return account_truth
+
+
+def parse_ad_truth():
+	'''Return a dictionary of Ad truth: for each ad, its accounts.'''
+	account_truth = parse_account_truth()
+
+	fd = open(AD_TRUTH, "r")
+	ad_truth = {"ALL":account_truth["ALL"]}
+
+	for line in fd.readlines():
+		if not line.startswith("#"):
+			words = line.strip().split("\t")
+			ad_truth[words[0]] = set()
+
+			if len(words) > 1:
+				for d_i in words[1:]:
+					ad_truth[words[0]] |= account_truth[d_i]
+
+	fd.close()
+	return ad_truth

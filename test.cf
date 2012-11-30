@@ -1,9 +1,0 @@
-# All files and directories in a line are treated as one ad_set. Lines starting
-# with "#" are treated as comments.
-
-# Files or directories in a line should be TAB-SEPARATED.
-# Example:
-# name	full_path_to_html_files	relative_path_to_html_dir
-
-Y	logs/ccloudauditor10
-N	logs/ccloudauditor14

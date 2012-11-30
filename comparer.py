@@ -1,9 +1,11 @@
 #! /usr/bin/python
-#  Name: Sravan Bhamidipati
-#  Date: 6th November, 2012
-#  Purpose: To compare GMail ads between two sets of HTMLs.
-#  The sets can be either files or directories.
-
+'''
+Name: Sravan Bhamidipati
+Date: 6th November, 2012
+Purpose: To compare GMail ads between two sets of HTMLs. The sets can be either
+files or directories.
+NOTE: DEPRECATED
+'''
 
 from adParser import AdParser
 import os, pylab, sys, time

@@ -1,13 +1,8 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 28th November, 2012
-Purpose: To find relevance and irrelevance of Ds. The sets can be either files
-or directories.
-
-13th Nov, 2012: Core operation is "intersection \ union". 
-18th Nov, 2012: Core operation is signatures.
-28th Nov, 2012: TPs, FPs, TNs, FNs. Plots.
+Date: 30th November, 2012
+Purpose: To find relevance and irrelevance of Ds.
 '''
 
 import adOps, adParser, os, pylab, sys
@@ -15,105 +10,43 @@ import adOps, adParser, os, pylab, sys
 if len(sys.argv) > 2:
 	adset_file = sys.argv[1]
 	results_dir = sys.argv[2]
-	DEBUG = 0
-
-	if len(sys.argv) > 3:
-		DEBUG = 1
 else:
-	print "Usage: python", sys.argv[0], "<adset_file> <results_dir> [DEBUG]"
+	print "Usage: python", sys.argv[0], "<adset_file> <results_dir>"
 	sys.exit(0)
 
 
-def parse_line(line):
-	'''Parse a line in the configuration file for HTML files.'''
-	file_set = set()
-	words = line.split("\t")
-	account = words.pop(0)
-
-	for word in words:
-		if not word.startswith("/"):
-			word = os.getcwd() + "/" + word
-
-		if os.path.isfile(word):
-			file_set.add(word)
-		elif os.path.isdir(word):
-			for root, dirnames, filenames in os.walk(word, followlinks=True):
-				for filename in filenames:
-					file_set.add(os.path.join(root, filename))
-
-	return account, file_set
-
-
 def parse_conf(filename):
-	'''In the config file, lines starting with # are ignored as comments. In
-	other lines, tab is the delimiter, all files and directories are treated as
-	being related to one account, identified by the first word.'''
-	afd = open(filename, "r")
-	accounts = {}
+	'''Read the config file containing a new-line separated list of files or
+	directories and return the set of files. The files are expected to be Gmail
+	HTML files.'''
+	fd = open(filename, "r")
+	file_set = set()
 
-	for line in afd.readlines():
-		line = line.strip()
-		if not line.startswith("#") and line != "":
-			[name, htmls] = parse_line(line.strip())
-			if name in accounts:
-				accounts[name]['html_set'] |= htmls
-			else:
-				accounts[name] = {}
-				accounts[name]['html_set'] = htmls
+	for line in fd.readlines():
+		if not line.startswith("#") and line != "\n":
+			root_dir = line.strip()
+			if not root_dir.startswith("/"):
+				root_dir = os.getcwd() + "/" + root_dir
+	
+			if os.path.isfile(root_dir):
+				file_set.add(root_dir)
+			elif os.path.isdir(root_dir):
+				for root, dirnames, filenames in os.walk(root_dir, followlinks=True):
+					for filename in filenames:
+						file_set.add(os.path.join(root, filename))
 
-	afd.close()
-
-	for name in accounts:
-		accounts[name]['ad_list'] = adParser.parse_html_set(accounts[name]['html_set'])
-
-	return accounts
-
-
-def signature(ad, accounts, origin=None):
-	'''Returns the set of accounts in which the ad is found.'''
-	sign = set()
-
-	if origin != None:
-		sign.add(origin)
-
-	for name in accounts:
-		if name != origin and adOps.belongs_to(ad, accounts[name]['ad_list']):
-			sign.add(name)
-
-	return sign
+	fd.close()
+	return file_set
 
 
-def signatures(accounts):
-	'''Finds the signatures of all ads in all accounts.'''
-	signs = {}
-	ad_lists = []
-
-	for name in accounts:
-		ad_lists.append(accounts[name]['ad_list'])
-
-	for ad in adOps.union(ad_lists):
-		signs[ad.get_ad_str()] = signature(ad, accounts)
-
-	return signs
-
-
-def anal_sign(signature, truth, account_truth):
-	'''Determine number of TPs, FPs, TNs, FNs in ad signature.'''
+def analyze_ad(all_accounts, ad_truth, ad_accounts):
+	'''Give 3 sets of accounts: universal, truth, observations, find various
+	statistics about the observations.'''
 	result = {}
-	result["tps"] = 0
-	result["fps"] = 0
-	result["tns"] = 0
-	result["fns"] = 0
-
-	for account in account_truth:
-		if account in signature and account in truth:
-			result["tps"] += 1
-		elif account in signature and account not in truth:
-			result["fps"] += 1
-		elif account not in signature and account in truth:
-			result["fns"] += 1
-		elif account not in signature and account not in truth:
-			result["tns"] += 1
+	result["tps"] = len(ad_truth & ad_accounts)
+	result["fps"] = len(ad_accounts - ad_truth)
+	result["tns"] = len(all_accounts - (ad_truth | ad_accounts))
+	result["fns"] = len(ad_truth - ad_accounts)
 
 	if (result["tps"] + result["fps"] + result["tns"] + result["fns"]) > 0:
 		result["accuracy"] = (result["tps"] + result["tns"]) / \
@@ -139,65 +72,55 @@ def anal_sign(signature, truth, account_truth):
 	return result
 
 
-def analyze_signatures(signs, truth, account_truth):
-	'''Find the precision and recall of ads.'''
-	total = {}
-	total["tps"] = 0
-	total["fps"] = 0
-	total["tns"] = 0
-	total["fns"] = 0
-	analyzed_signs = {}
+def analyze_ads(ad_truth, ad_list):
+	'''Given the Ad truth find various statistics of ads.'''
+	total = {"tps":0, "fps":0, "tns":0, "fns":0}
+	analyzed_ads = []
 
-	for ad_str in signs:
-		for ad_url in truth:
-			if ad_url in ad_str:
-				result = anal_sign(signs[ad_str], truth[ad_url], account_truth)
-				analyzed_signs[ad_str] = result
-				analyzed_signs[ad_str]["accounts"] = signs[ad_str]
-				total["tps"] += result["tps"]
-				total["fps"] += result["fps"]
-				total["tns"] += result["tns"]
-				total["fns"] += result["fns"]
-				break
+	for ad in ad_list:
+		relevant_ad_truth = set()
+		for ad_url in set(ad.ad_urls) & set(ad_truth.keys()):
+			relevant_ad_truth |= ad_truth[ad_url]
+
+		if len(relevant_ad_truth) == 0:
+			continue
+
+		analyzed_ad = analyze_ad(ad_truth["ALL"], relevant_ad_truth, \
+						set(ad.accounts))
+		analyzed_ads.append(analyzed_ad)
+		print ad.get_ad_str()
+		print analyzed_ad
+		print "\n\n\n"
+
+		for key in total:
+			total[key] += analyzed_ad[key]
 
 	print total
-	return analyzed_signs
+	return analyzed_ads
 
 
-def save_signatures(analyzed_signs, filename):
-	'''Write the signatures of all ads in all accounts to a file.'''
-	sfd = open(filename, "w")
-	signs_str = ""
-
-	for ad_str in analyzed_signs:
-		signs_str += ad_str + "Accounts: "
-		for name in sorted(list(analyzed_signs[ad_str]["accounts"])):
-			signs_str += name + "\t"
-		signs_str += "\n"
-
-		for key in sorted(analyzed_signs[ad_str]):
-			if key != "accounts":
-				signs_str += key + ": " + str(analyzed_signs[ad_str][key]) + "\t"
-		signs_str += "\n\n\n"
-
-	sfd.write(signs_str)
-	sfd.flush()
-	sfd.close()
+def make_dirs(dirname):
+	'''Create the required directories for results.'''
+	if not os.path.isdir(dirname):
+		if os.path.exists(dirname):
+			print dirname, "exists and is not a directory."
+		else:
+			os.makedirs(dirname)
 
 
-def threshold_freq(analyzed_signs, key, value):
+def threshold_freq(analyzed_ads, key, value):
 	'''Find the number of ads with key value >= value.'''
 	count = 0
 
-	for ad_str in analyzed_signs:
-		if analyzed_signs[ad_str][key] >= value:
+	for ad in analyzed_ads:
+		if ad[key] >= value:
 			count += 1
 
 	return count
 
 
-def gen_plots(analyzed_signs, results_dir):
-	'''Generate plots related to accuracy, precision, recall, true negative rate.'''
+def gen_plots(analyzed_ads, results_dir):
+	'''Draw plots related to accuracy, precision, recall, true negative rate.'''
 	x_values = []
 	value = 0
 	step = 0.1
@@ -209,7 +132,7 @@ def gen_plots(analyzed_signs, results_dir):
 		y_values = []
 	
 		for value in x_values:
-			y_values.append(threshold_freq(analyzed_signs, key, value))
+			y_values.append(threshold_freq(analyzed_ads, key, value))
 	
 		pylab.xlabel(key + " Threshold")
 		pylab.ylabel("Number of ads above threshold")
@@ -218,26 +141,24 @@ def gen_plots(analyzed_signs, results_dir):
 		pylab.clf()
 
 
-accounts = parse_conf(adset_file)
-signs = signatures(accounts)
-
-if DEBUG:
-	fd.open("debug.txt", "w")
-	ad_strs = ""
-	for ad_str in signs:
-		ad_strs += ad_str + "\n"
-	fd.write(ad_strs)
+def debug_logs(ad_list, analyzed_ads, dirname):
+	'''Save debug logs.'''
+	fd = open(dirname + "/ads.txt", "w")
+	fd.write(adOps.get_ads_str(ad_list))
 	fd.flush()
 	fd.close()
 
-analyzed_signs = analyze_signatures(signs, adParser.parse_ad_truth(), \
-					adParser.parse_account_truth())
+	fd = open(dirname + "/analysis.txt", "w")
+	string = ""
+	for ad in analyzed_ads:
+		string += ad.__str__() + "\n"
+	fd.write(string)
+	fd.flush()
+	fd.close()
 
-if not os.path.isdir(results_dir):
-	if os.path.exists(results_dir):
-		print results_dir, "exists and is not a directory."
-	else:
-		os.makedirs(results_dir)
 
-save_signatures(analyzed_signs, results_dir + "/signs.txt")
-gen_plots(analyzed_signs, results_dir)
+ad_list = adParser.parse_html_set(parse_conf(adset_file))
+analyzed_ads = analyze_ads(adParser.parse_ad_truth(), ad_list)
+make_dirs(results_dir)
+gen_plots(analyzed_ads, results_dir)
+debug_logs(ad_list, analyzed_ads, results_dir)
