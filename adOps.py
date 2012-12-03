@@ -1,11 +1,10 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 18th November, 2012
+Date: 2nd December, 2012
 Purpose: A library to do operations on collections (lists) of ads.
 '''
 
-from adGlobals import *
 from adObj import AdObj
 
 
@@ -35,11 +34,7 @@ def count(ads):
 def include(ad_list, ad):
 	'''Add ad to ad_list, if possible by merging into a similar ad.'''
 	for i in range(0, len(ad_list)):
-		comparison = ad_list[i].compare(ad)
-
-		if comparison == EQUAL:
-			return ad_list
-		elif comparison == SIMILAR:
+		if ad_list[i].compare(ad):
 			ad_list[i].merge(ad)
 			return ad_list
 
@@ -50,9 +45,7 @@ def include(ad_list, ad):
 def exclude(ad_list, ad):
 	'''Remove ad or a similar ad from ad_list if possible.'''
 	for i in range(0, len(ad_list)):
-		comparison = ad_list[i].compare(ad)
-
-		if comparison == EQUAL or comparison == SIMILAR:
+		if ad_list[i].compare(ad):
 			ad_list.pop(i)
 			break
 
@@ -77,10 +70,7 @@ def intersection2(ad_list1, ad_list2):
 
 	for ad1 in ad_list1:
 		for ad2 in ad_list2:
-			comparison = ad1.compare(ad2)
-			if comparison == EQUAL:
-				ad_int = include(ad_int, ad1)
-			elif comparison == SIMILAR:
+			if ad1.compare(ad2):
 				ad1.merge(ad2)
 				ad_int = include(ad_int, ad1)
 
@@ -115,7 +105,7 @@ def difference(ad_list1, ad_list2):
 def belongs_to(ad, ad_list):
 	'''Return True if ad belongs to ad_list.'''
 	for a in ad_list:
-		if ad.compare(a) != UNEQUAL:
+		if ad.compare(a):
 			return True
 
 	return False

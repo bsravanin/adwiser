@@ -1,11 +1,10 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 29th November, 2012
+Date: 2nd December, 2012
 Purpose: An object type for Ads and its related operations.
 '''
 
-from adGlobals import *
 import re, sys, urllib
 
 
@@ -40,7 +39,7 @@ class AdObj(dict):
 	containing the displayed URLs, googlead URLs, texts.'''
 
 	def __init__(self, url, text, username):
-		self.accounts = [username]
+		self.accounts = {username:1}
 		self.ad_urls = [clean_url(url)]
 
 		ad_words = []
@@ -59,7 +58,9 @@ class AdObj(dict):
 
 	def get_ad_str(self):
 		ad_str = "=====AD STARTS====="
-		ad_str += "\nAccount: " + "\nAccount: ".join(sorted(self.accounts))
+		for account in self.accounts:
+			ad_str += "\nAccount: " + account + "\tCount: " + \
+						str(self.accounts[account])
 		ad_str += "\nAdURL: " + "\nAdURL: ".join(sorted(self.ad_urls))
 
 		try:
@@ -73,14 +74,10 @@ class AdObj(dict):
 
 
 	def compare(self, ad):
-		'''Compare this ad object with another to see whether they are equal,
-		similar, or otherwise.'''
-		if self.__dict__ == ad.__dict__:
-			return EQUAL
-
+		'''Compare this ad object with another for similarity.'''
 		if len(set(self.ad_urls) & set(ad.ad_urls)) > 0 \
 			or len(set(self.texts) & set(ad.texts)) > 0:
-			return SIMILAR
+			return True
 
 		'''
 		or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
@@ -88,12 +85,17 @@ class AdObj(dict):
 		If there are common displayed_urls, AND ad_urls/text overlap.
 		'''
 
-		return UNEQUAL
+		return False
 
 
 	def merge(self, ad):
 		'''Merge another ad object into this ad.'''
-		self.accounts = list(set(self.accounts) | set(ad.accounts))
+		for account in set(ad.accounts):
+			if account in self.accounts:
+				self.accounts[account] += ad.accounts[account]
+			else:
+				self.accounts[account] = ad.accounts[account]
+
 		self.ad_urls = list(set(self.ad_urls) | set(ad.ad_urls))
 		self.displayed_urls = list(set(self.displayed_urls) \
 								| set(ad.displayed_urls))

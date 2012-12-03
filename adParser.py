@@ -1,16 +1,22 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 30th November, 2012
+Date: 2nd December, 2012
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
 
-from adGlobals import *
 from adObj import AdObj
 from HTMLParser import HTMLParser
 import adOps
 import magic, os
+
+
+NO_READ = 0
+READ = 1
+CHECK_READ = 2
+AD_TRUTH = "dbs/adTruth.db"
+ACCOUNT_TRUTH = "dbs/accountTruth.db"
 
 
 class AdParser(HTMLParser):
