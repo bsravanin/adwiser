@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 30th November, 2012
+Date: 3rd December, 2012
 Purpose: To find relevance and irrelevance of Ds.
 '''
 
@@ -13,6 +13,9 @@ if len(sys.argv) > 2:
 else:
 	print "Usage: python", sys.argv[0], "<adset_file> <results_dir>"
 	sys.exit(0)
+
+
+analysis_str = ""
 
 
 def parse_conf(filename):
@@ -39,64 +42,131 @@ def parse_conf(filename):
 	return file_set
 
 
-def analyze_ad(all_accounts, ad_truth, ad_accounts):
-	'''Give 3 sets of accounts: universal, truth, observations, find various
-	statistics about the observations.'''
+def ds_of_ad_list(ad_list):
+	'''Find the Ds, their frequencies, and confidence levels of being targeted
+	by an ad for all ads in a list, based on the account truth.'''
+	account_truth = adParser.true_ds_of_accounts()
+	ds_truth = adParser.true_accounts_of_ds()
+	ds_of_ads = []
+
+	for ad in ad_list:
+		ds_of_ad = {}
+
+		for account in ad.accounts:
+			for d in account_truth[account]:
+				if d in ds_of_ad:
+					ds_of_ad[d]["accounts"] += 1
+					ds_of_ad[d]["count"] += ad.accounts[account]
+				else:
+					ds_of_ad[d] = {"accounts":1, "count":ad.accounts[account]}
+
+		for d in ds_of_ad:
+			ds_of_ad[d]["account_confidence"] = \
+					ds_of_ad[d]["accounts"] / float(len(ds_truth[d]))
+			ds_of_ad[d]["count_confidence"] = 0
+
+		max_confidence = max(ds_of_ad[x]["account_confidence"] for x in ds_of_ad)
+		max_ds = set()
+		for d in ds_of_ad:
+			if ds_of_ad[d]["account_confidence"] == max_confidence:
+				max_ds.add(d)
+
+		ds_of_ad["prediction"] = max_ds
+		ds_of_ad["prediction_confidence"] = max_confidence
+		ds_of_ads.append(ds_of_ad)
+
+	return ds_of_ads, account_truth["ALL"]
+
+
+def true_ds_of_ad_list(ad_list):
+	'''Find the true Ds of ads in the list.'''
+	true_ds_of_ads = []
+	ad_truth = adParser.true_ds_of_ads()
+
+	for ad in ad_list:
+		true_ds_of_ad = set()
+
+		for url in set(ad.ad_urls) & set(ad_truth):
+			true_ds_of_ad |= ad_truth[url]
+
+		true_ds_of_ads.append(true_ds_of_ad)
+
+	return true_ds_of_ads
+
+
+def analyze_ad(ds_of_ad, true_ds_of_ad, all_ds, threshold):
+	'''Given 3 lists of Ds: Ds along with their confidence levels based on
+	observations, true Ds, and all possible Ds, find TPs, FPs, TNs, FNs given
+	a minimum confidence level to predict.'''
+	global analysis_str
+	targeted = set()
+	true_targeted = true_ds_of_ad
+	true_untargeted = all_ds - true_ds_of_ad
+
+	if ds_of_ad["prediction_confidence"] >= threshold:
+		targeted = ds_of_ad["prediction"]
+
+	untargeted = all_ds - targeted
+
 	result = {}
-	result["tps"] = len(ad_truth & ad_accounts)
-	result["fps"] = len(ad_accounts - ad_truth)
-	result["tns"] = len(all_accounts - (ad_truth | ad_accounts))
-	result["fns"] = len(ad_truth - ad_accounts)
-
-	if (result["tps"] + result["fps"] + result["tns"] + result["fns"]) > 0:
-		result["accuracy"] = (result["tps"] + result["tns"]) / \
-			(float)(result["tps"] + result["fps"] + result["tns"] + result["fns"])
-	else:
-		result["accuracy"] = 0
-
-	if (result["tps"] + result["fps"]) > 0:
-		result["precision"] = result["tps"] / (float)(result["tps"] + result["fps"])
-	else:
-		result["precision"] = 0
-
-	if (result["tps"] + result["fns"]) > 0:
-		result["recall"] = result["tps"] / (float)(result["tps"] + result["fns"])
-	else:
-		result["recall"] = 0
-
-	if (result["tns"] + result["fps"]) > 0:
-		result["tnr"] = result["tns"] / (float)(result["tns"] + result["fps"])
-	else:
-		result["tnr"] = 0
-
+	result["tps"] = len(targeted & true_targeted)
+	result["fps"] = len(targeted & true_untargeted)
+	result["tns"] = len(untargeted & true_untargeted)
+	result["fns"] = len(untargeted & true_targeted)
+	analysis_str += "analyze_ad " + str(threshold) + " " + result.__str__() + "\n"
 	return result
 
 
-def analyze_ads(ad_truth, ad_list):
-	'''Given the Ad truth find various statistics of ads.'''
+def analyze_ads(ds_of_ads, true_ds_of_ads, all_ds, threshold):
+	'''Analyze expected Ds of ads against the Ad truth, given a confidence
+	level for prediction.'''
+	global analysis_str
 	total = {"tps":0, "fps":0, "tns":0, "fns":0}
-	analyzed_ads = []
 
-	for ad in ad_list:
-		relevant_ad_truth = set()
-		for ad_url in set(ad.ad_urls) & set(ad_truth.keys()):
-			relevant_ad_truth |= ad_truth[ad_url]
-
-		if len(relevant_ad_truth) == 0:
-			continue
-
-		analyzed_ad = analyze_ad(ad_truth["ALL"], relevant_ad_truth, \
-						set(ad.accounts))
-		analyzed_ads.append(analyzed_ad)
-		print ad.get_ad_str()
-		print analyzed_ad
-		print "\n\n\n"
+	for i in range(0, len(ds_of_ads)):
+		analyzed_ad = analyze_ad(ds_of_ads[i], true_ds_of_ads[i], all_ds, \
+																	threshold)
 
 		for key in total:
 			total[key] += analyzed_ad[key]
 
-	print total
-	return analyzed_ads
+	if (total["tps"] + total["fps"] + total["tns"] + total["fns"]) > 0:
+		total["accuracy"] = (total["tps"] + total["tns"]) / \
+			float(total["tps"] + total["fps"] + total["tns"] + total["fns"])
+	else:
+		total["accuracy"] = 0
+
+	if (total["tps"] + total["fps"]) > 0:
+		total["precision"] = total["tps"] / float(total["tps"] + total["fps"])
+	else:
+		total["precision"] = 0
+
+	if (total["tps"] + total["fns"]) > 0:
+		total["recall"] = total["tps"] / float(total["tps"] + total["fns"])
+	else:
+		total["recall"] = 0
+
+	if (total["tns"] + total["fps"]) > 0:
+		total["tnr"] = total["tns"] / float(total["tns"] + total["fps"])
+	else:
+		total["tnr"] = 0
+
+	analysis_str += "analyze_ads " + str(threshold) + " " + total.__str__() + "\n"
+	return total
+
+
+def analyze_ads_all_thresholds(ds_of_ads, true_ds_of_ads, all_ds):
+	'''Analyze expected Ds of ads against the Ad truth, for different confidence
+	levels of prediction.'''
+	results = {}
+	threshold = 0
+	step = 0.1
+	while threshold < 1:
+		results[threshold] = analyze_ads(ds_of_ads, true_ds_of_ads, all_ds, \
+																	threshold)
+		threshold += step
+
+	return results
 
 
 def make_dirs(dirname):
@@ -108,40 +178,24 @@ def make_dirs(dirname):
 			os.makedirs(dirname)
 
 
-def threshold_freq(analyzed_ads, key, value):
-	'''Find the number of ads with key value >= value.'''
-	count = 0
-
-	for ad in analyzed_ads:
-		if ad[key] >= value:
-			count += 1
-
-	return count
-
-
-def gen_plots(analyzed_ads, results_dir):
+def gen_plots(results, results_dir):
 	'''Draw plots related to accuracy, precision, recall, true negative rate.'''
-	x_values = []
-	value = 0
-	step = 0.1
-	while value <= 1:
-		x_values.append(value)
-		value += step
+	x_values = sorted(results.keys())
 
 	for key in ("accuracy", "precision", "recall", "tnr"):
 		y_values = []
-	
-		for value in x_values:
-			y_values.append(threshold_freq(analyzed_ads, key, value))
-	
-		pylab.xlabel(key + " Threshold")
-		pylab.ylabel("Number of ads above threshold")
+
+		for threshold in x_values:
+			y_values.append(results[threshold][key])
+
+		pylab.xlabel("Threshold")
+		pylab.ylabel(key)
 		pylab.plot(x_values, y_values)
 		pylab.savefig(results_dir + "/" + key + ".png")
 		pylab.clf()
 
 
-def debug_logs(ad_list, analyzed_ads, dirname):
+def debug_logs(ad_list, dirname):
 	'''Save debug logs.'''
 	fd = open(dirname + "/ads.txt", "w")
 	fd.write(adOps.get_ads_str(ad_list))
@@ -149,16 +203,15 @@ def debug_logs(ad_list, analyzed_ads, dirname):
 	fd.close()
 
 	fd = open(dirname + "/analysis.txt", "w")
-	string = ""
-	for ad in analyzed_ads:
-		string += ad.__str__() + "\n"
-	fd.write(string)
+	fd.write(analysis_str)
 	fd.flush()
 	fd.close()
 
 
 ad_list = adParser.parse_html_set(parse_conf(adset_file))
-analyzed_ads = analyze_ads(adParser.parse_ad_truth(), ad_list)
+ds_of_ads, all_ds = ds_of_ad_list(ad_list)
+true_ds_of_ads = true_ds_of_ad_list(ad_list)
+results = analyze_ads_all_thresholds(ds_of_ads, true_ds_of_ads, all_ds)
 make_dirs(results_dir)
-gen_plots(analyzed_ads, results_dir)
-debug_logs(ad_list, analyzed_ads, results_dir)
+gen_plots(results, results_dir)
+debug_logs(ad_list, results_dir)
