@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 3rd December, 2012
+Date: 5th December, 2012
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
@@ -15,8 +15,6 @@ import magic, os
 NO_READ = 0
 READ = 1
 CHECK_READ = 2
-AD_TRUTH = "dbs/adTruth.db"
-ACCOUNT_TRUTH = "dbs/accountTruth.db"
 
 
 class AdParser(HTMLParser):
@@ -87,77 +85,3 @@ def parse_html_set(html_set):
 			ad_list.append(parse_html(html_file))
 
 	return adOps.union(ad_list)
-
-
-def true_ds_of_accounts():
-	'''Return a dictionary of Account truth: for each account, its Ds.'''
-	fd = open(ACCOUNT_TRUTH, "r")
-	all_ds = set()
-	account_truth = {}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			account_truth[words[0]] = frozenset(words[1:])
-			all_ds |= account_truth[words[0]]
-
-	fd.close()
-	account_truth["ALL"] = frozenset(all_ds)
-	return account_truth
-
-
-def true_accounts_of_ds():
-	'''Return a dictionary of D truth: for each D, its accounts.'''
-	account_truth = true_ds_of_accounts()
-	ds_truth = {"ALL":set()}
-
-	for account in account_truth:
-		if account == "ALL":
-			continue
-
-		ds_truth["ALL"].add(account)
-
-		for d in account_truth[account]:
-			if d in ds_truth:
-				ds_truth[d].add(account)
-			else:
-				ds_truth[d] = set([account])
-
-	return ds_truth
-
-
-def true_ds_of_ads():
-	'''Return a dictionary of Ad truth: for each ad, its Ds.'''
-	fd = open(AD_TRUTH, "r")
-	ad_truth = {}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-
-			if len(words) > 1:
-				ad_truth[words[0]] = frozenset(words[1:])
-
-	fd.close()
-	return ad_truth
-
-
-def true_accounts_of_ads():
-	'''DEPRECATED: Return a dictionary of Ad truth: for each ad, its
-	accounts.'''
-	account_truth = accounts_of_ds()
-
-	fd = open(AD_TRUTH, "r")
-	ad_truth = {"ALL":account_truth["ALL"]}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			ad_truth[words[0]] = set()
-
-			if len(words) > 1:
-				for d in words[1:]:
-					ad_truth[words[0]] |= account_truth[d]
-
-	fd.close()
-	return ad_truth
