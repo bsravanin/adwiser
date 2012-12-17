@@ -203,7 +203,7 @@ def analyze_ad(ad, ds_truth, alphas, betas):
 		scores = calculate_scores(analysis[d], alphas, betas)
 
 		for key in MODELS:
-			analysis_weighted[d][key] = scores[key]
+			analysis[d][key] = scores[key]
 
 	return max_score(analysis, alphas, betas)
 
