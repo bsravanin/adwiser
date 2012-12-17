@@ -95,10 +95,6 @@ def true_ds_of_ad(ad, ad_truth_ds):
 	for url in set(ad.ad_urls) & set(ad_truth_ds):
 		true_ds |= ad_truth_ds[url]
 
-	if len(true_ds) > 0:
-		print "TRUTH Targeted"
-	else:
-		print "TRUTH Untargeted"
 	return true_ds
 
 
@@ -218,6 +214,15 @@ def verify_pred(predicted_ds_of_ad, true_ds_of_ad, all_ds, threshold):
 	result["fps"] = len(prediction & (all_ds - true_ds_of_ad))
 	result["fns"] = len((all_ds - prediction) & true_ds_of_ad)
 	result["tns"] = len((all_ds - prediction) & (all_ds - true_ds_of_ad))
+
+	if len(prediction) > 0 and len(true_ds_of_ad) > 0:
+		result["targeted"] = "tps"
+	elif len(prediction) > 0 and len(true_ds_of_ad) == 0:
+		result["targeted"] = "fps"
+	elif len(prediction) == 0 and len(true_ds_of_ad) == 0:
+		result["targeted"] = "tns"
+	elif len(prediction) == 0 and len(true_ds_of_ad) > 0:
+		result["targeted"] = "fns"
 	return result
 
 
@@ -305,6 +310,13 @@ def aggregate_verifications(verifications, alphas, betas, thresholds):
 							aggregate[key2] += \
 										ad[key][alpha][beta][threshold][key2]
 
+					targeted = {"tps": 0, "fps": 0, "fns": 0, "tns": 0}
+
+					for ad in verifications:
+						key2 = ad[key][alpha][beta][threshold]["targeted"]
+						targeted[key2] += 1
+
+					aggregate["targeted"] = compute_stats(targeted)
 					aggregates[key][alpha][beta][threshold] = \
 														compute_stats(aggregate)
 

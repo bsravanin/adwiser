@@ -80,9 +80,10 @@ def single_plot(results, results_dir, plot, alphas, betas, thresholds):
 				pylab.ylabel(plot)
 				pylab.plot(x_values, y_values, "bo-")
 				pylab.axis([0, 1, 0, 1])
-				fig = results_dir + "/" + key + "-" + plot + "-a" + \
-						str(round(alpha, 1)) + "-b" + str(round(beta, 1)) + ".png"
-				pylab.savefig(fig)
+				fig = key + "-" + plot + "-a" + str(round(alpha, 1)) + "-b" + \
+															str(round(beta, 1))
+				pylab.title(fig)
+				pylab.savefig(results_dir + "/" + fig + ".png")
 				pylab.clf()
 
 
@@ -102,9 +103,27 @@ def double_plot(results, results_dir, plot1, plot2, alphas, betas, thresholds):
 				pylab.ylabel(plot2)
 				pylab.plot(x_values, y_values, "bo-")
 				pylab.axis([0, 1, 0, 1])
-				fig = results_dir + "/" + key + "-" + plot1 + "-" + plot2 + \
-						"-a" + str(round(alpha, 1)) + "-b" + str(round(beta, 1)) + ".png"
-				pylab.savefig(fig)
+				fig = key + "-" + plot1 + "-" + plot2 + "-a" + \
+							str(round(alpha, 1)) + "-b" + str(round(beta, 1))
+				pylab.title(fig)
+				pylab.savefig(results_dir + "/" + fig + ".png")
+				pylab.clf()
+
+				x_values = []
+				y_values = []
+
+				for threshold in thresholds:
+					x_values.append(results[key][alpha][beta][threshold]["targeted"][plot1])
+					y_values.append(results[key][alpha][beta][threshold]["targeted"][plot2])
+
+				pylab.xlabel(plot1)
+				pylab.ylabel(plot2)
+				pylab.plot(x_values, y_values, "bo-")
+				pylab.axis([0, 1, 0, 1])
+				fig = "targeted" + "-" + key + "-" + plot1 + "-" + plot2 + \
+						"-a" + str(round(alpha, 1)) + "-b" + str(round(beta, 1))
+				pylab.title(fig)
+				pylab.savefig(results_dir + "/" + fig + ".png")
 				pylab.clf()
 
 
