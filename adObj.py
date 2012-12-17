@@ -97,6 +97,6 @@ class AdObj(dict):
 				self.accounts[account] = ad.accounts[account]
 
 		self.ad_urls = list(set(self.ad_urls) | set(ad.ad_urls))
-		self.displayed_urls = list(set(self.displayed_urls) \
-								| set(ad.displayed_urls))
+		self.displayed_urls = list(set(self.displayed_urls) |\
+									set(ad.displayed_urls))
 		self.texts = list(set(self.texts) | set(ad.texts))

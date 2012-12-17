@@ -38,9 +38,9 @@ def get_dirname(dirname, username):
 	'''Create a dirname based on username and timestamp to save the trial.'''
 	timestamp = ts.today()
 	return dirname + "/" + username + "/" + str(timestamp.year) + "-" \
-	+ str(timestamp.month) + "-" + str(timestamp.day) + "_" \
-	+ str(timestamp.hour) + "-" + str(timestamp.minute) + "-" \
-	+ str(timestamp.second)
+			+ str(timestamp.month) + "-" + str(timestamp.day) + "_" \
+			+ str(timestamp.hour) + "-" + str(timestamp.minute) + "-" \
+			+ str(timestamp.second)
 
 
 def save_page(dirname, filename):
