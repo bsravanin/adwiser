@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 5th December, 2012
+Date: 16th December, 2012
 Purpose: To find relevance and irrelevance of Ds.
 '''
 
@@ -43,62 +43,15 @@ def parse_conf(filename):
 	return file_set
 
 
-def analyze_ad(ds_of_ad, true_ds_of_ad, all_ds, threshold):
-	'''Given 3 lists of Ds: Ds along with their confidence levels based on
-	observations, true Ds, and all possible Ds, find TPs, FPs, TNs, FNs given
-	a minimum confidence level to predict.'''
-	global debug_str
-	targeted = set()
-	true_targeted = true_ds_of_ad
-	true_untargeted = all_ds - true_ds_of_ad
+def float_range(start, end, step):
+	'''A function similar to the regular range function in Python.'''
+	values = []
 
-	# if ds_of_ad["confidence"] >= threshold:
-		# targeted = ds_of_ad["prediction"]
-	for d in all_ds:
-		if d in ds_of_ad and ds_of_ad[d]["confidence"] >= threshold:
-			targeted.add(d)
+	while start <= end:
+		values.append(start)
+		start += step
 
-	untargeted = all_ds - targeted
-
-	result = {}
-	result["tps"] = len(targeted & true_targeted)
-	result["fps"] = len(targeted & true_untargeted)
-	result["tns"] = len(untargeted & true_untargeted)
-	result["fns"] = len(untargeted & true_targeted)
-	debug_str += "analyze_ad " + str(threshold) + " " + result.__str__() + "\n"
-	return result
-
-
-def analyze_ads(ds_of_ads, true_ds_of_ads, all_ds, threshold):
-	'''Analyze expected Ds of ads against the Ad truth, given a confidence
-	level for prediction.'''
-	global debug_str 
-	total = {"tps":0, "fps":0, "tns":0, "fns":0}
-
-	for i in range(0, len(ds_of_ads)):
-		analyzed_ad = analyze_ad(ds_of_ads[i], true_ds_of_ads[i], all_ds, threshold)
-
-		for key in total:
-			total[key] += analyzed_ad[key]
-
-	total = adAnalyzer.compute_stats(total)
-	debug_str += "analyze_ads " + str(threshold) + " " + total.__str__() + "\n"
-	return total
-
-
-def analyze_ads_all_thresholds(ds_of_ads, true_ds_of_ads, all_ds):
-	'''Analyze expected Ds of ads against the Ad truth, for different confidence
-	levels of prediction.'''
-	results = {}
-	threshold = 0
-	step = 0.1
-
-	while threshold < 1:
-		results[threshold] = analyze_ads(ds_of_ads, true_ds_of_ads, all_ds, \
-																	threshold)
-		threshold += step
-
-	return results
+	return values
 
 
 def make_dirs(dirname):
@@ -110,44 +63,58 @@ def make_dirs(dirname):
 			os.makedirs(dirname)
 
 
-def single_plot(results, results_dir, key):
-	'''Plot a single key against threshold values.'''
-	x_values = sorted(results.keys())
-	y_values = []
+def single_plot(results, results_dir, plot, alphas, betas, thresholds):
+	'''Single plots against threshold values for various alphas, betas for
+	all models.'''
+	x_values = thresholds
 
-	for threshold in x_values:
-		y_values.append(results[threshold][key])
+	for key in results:
+		for alpha in alphas:
+			for beta in betas:
+				y_values = []
 
-	pylab.xlabel("Threshold")
-	pylab.ylabel(key)
-	pylab.plot(x_values, y_values, "bo-")
-	pylab.savefig(results_dir + "/" + key + ".png")
-	pylab.clf()
+				for threshold in x_values:
+					y_values.append(results[key][alpha][beta][threshold][plot])
 
-
-def double_plot(results, results_dir, key1, key2):
-	'''Plots two keys against one another.'''
-	x_values = []
-	y_values = []
-
-	for threshold in sorted(results.keys()):
-		x_values.append(results[threshold][key1])
-		y_values.append(results[threshold][key2])
-
-	pylab.xlabel(key1)
-	pylab.ylabel(key2)
-	pylab.plot(x_values, y_values, "bo-")
-	pylab.savefig(results_dir + "/" + key1 + "-" + key2 + ".png")
-	pylab.clf()
+				pylab.xlabel("Threshold")
+				pylab.ylabel(plot)
+				pylab.plot(x_values, y_values, "bo-")
+				pylab.axis([0, 1, 0, 1])
+				fig = results_dir + "/" + key + "-" + plot + "-a" + \
+						str(round(alpha, 1)) + "-b" + str(round(beta, 1)) + ".png"
+				pylab.savefig(fig)
+				pylab.clf()
 
 
-def gen_plots(results, results_dir):
+def double_plot(results, results_dir, plot1, plot2, alphas, betas, thresholds):
+	'''Double plots for various alphas, betas for all models.'''
+	for key in results:
+		for alpha in alphas:
+			for beta in betas:
+				x_values = []
+				y_values = []
+
+				for threshold in thresholds:
+					x_values.append(results[key][alpha][beta][threshold][plot1])
+					y_values.append(results[key][alpha][beta][threshold][plot2])
+
+				pylab.xlabel(plot1)
+				pylab.ylabel(plot2)
+				pylab.plot(x_values, y_values, "bo-")
+				pylab.axis([0, 1, 0, 1])
+				fig = results_dir + "/" + key + "-" + plot1 + "-" + plot2 + \
+						"-a" + str(round(alpha, 1)) + "-b" + str(round(beta, 1)) + ".png"
+				pylab.savefig(fig)
+				pylab.clf()
+
+
+def gen_plots(results, results_dir, alphas, betas, thresholds):
 	'''Draw various plots.'''
-	for key in ("accuracy", "precision", "recall", "tnr"):
-		single_plot(results, results_dir, key)
+	# for plot in ("accuracy", "precision", "recall", "tnr"):
+		# single_plot(results, results_dir, plot, alphas, betas, thresholds)
 
-	double_plot(results, results_dir, "precision", "recall")
-	double_plot(results, results_dir, "recall", "precision")
+	double_plot(results, results_dir, "precision", "recall", alphas, betas, thresholds)
+	double_plot(results, results_dir, "recall", "precision", alphas, betas, thresholds)
 
 
 def debug_logs(ad_list, dirname):
@@ -168,10 +135,18 @@ ds_truth = adAnalyzer.true_accounts_of_ds()
 ad_truth_ds = adAnalyzer.true_ds_of_ads()
 # ad_truth_accounts = adAnalyzer.true_accounts_of_ads()
 
+alphas = float_range(0.5, 1, 0.1)
+betas = float_range(0.5, 1, 0.1)
+thresholds = float_range(0, 1, 0.1)
+
 ad_list = adParser.parse_html_set(parse_conf(adset_file))
 true_ds_of_ads = adAnalyzer.true_ds_of_ad_list(ad_list, ad_truth_ds)
-ds_of_ads = adAnalyzer.ds_of_ad_list(ad_list, account_truth, ds_truth)
-results = analyze_ads_all_thresholds(ds_of_ads, true_ds_of_ads, account_truth["ALL"])
+analyzed_ads = adAnalyzer.analyze_ads(ad_list, ds_truth, alphas, betas)
+verifications = adAnalyzer.verify_predictions(analyzed_ads, true_ds_of_ads, \
+								account_truth["ALL"], alphas, betas, thresholds)
+results = adAnalyzer.aggregate_verifications(verifications, alphas, betas, \
+																	thresholds)
+
 make_dirs(results_dir)
-gen_plots(results, results_dir)
+gen_plots(results, results_dir, alphas, betas, thresholds)
 debug_logs(ad_list, results_dir)
