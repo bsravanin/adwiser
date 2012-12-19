@@ -1,11 +1,11 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 17th December, 2012
+Date: 19th December, 2012
 Purpose: To find relevance and irrelevance of Ds.
 '''
 
-import adAnalyzer, adOps, adParser
+import adAnalyzer, adOps, adParser, adPlotter
 import os, pylab, sys
 
 if len(sys.argv) > 2:
@@ -18,6 +18,8 @@ else:
 
 debug_str = ""
 
+import datetime
+ts = datetime.datetime
 
 def parse_conf(filename):
 	'''Read the config file containing a new-line separated list of files or
@@ -66,107 +68,45 @@ def make_dirs(results, results_dir):
 				os.makedirs(results_dir + "/targeted/" + key)
 
 
-def draw_plot(y_dict, x_values, y_key, plot_type):
-	'''Plot values of y_dict[x][y_key] against each x in x_values.'''
-	y_values = []
-
-	for x in x_values:
-		y_values.append(y_dict[x][y_key])
-
-	pylab.plot(x_values, y_values, plot_type)
-
-
-def draw2_plot(yz_dict, x_values, y_key, z_key, plot_type1, plot_type2):
-	'''Plot values of yz_dict[x][y_key] against each x in x_values along left
-	y-axis and values of yz_dict[x][z_key] along right y-axis.'''
-	y_values = []
-	z_values = []
-
-	for x in x_values:
-		y_values.append(yz_dict[x][y_key])
-		z_values.append(yz_dict[x][z_key])
-
-	pylab.plot(x_values, y_values, plot_type1)
-	pylab.plot(x_values, z_values, plot_type2)
-
-
-def draw_plot2(xy_dict, z_values, x_key, y_key, plot_type):
-	'''Plot values of xy_dict[z][y_key] against xy_dict[z][x_key] for each z in
-	z_values.'''
-	x_values = []
-	y_values = []
-
-	for z in z_values:
-		x_values.append(xy_dict[z][x_key])
-		y_values.append(xy_dict[z][y_key])
-
-	pylab.plot(x_values, y_values, plot_type)
-
-
-def draw_targeted_plot(y_dict, x_values, y_key, plot_type):
-	'''Plot values of y_dict[x][y_key] against each x in x_values but for
-	targeted or not graphs.'''
-	y_values = []
-
-	for x in x_values:
-		y_values.append(y_dict[x]["targeted"][y_key])
-
-	pylab.plot(x_values, y_values, plot_type)
-
-
-def draw_targeted_plot2(xy_dict, z_values, x_key, y_key, plot_type):
-	'''Plot values of xy_dict[z][y_key] against xy_dict[z][x_key] for each z in
-	z_values but for targeted or not graphs.'''
-	x_values = []
-	y_values = []
-
-	for z in z_values:
-		x_values.append(xy_dict[z]["targeted"][x_key])
-		y_values.append(xy_dict[z]["targeted"][y_key])
-
-	pylab.plot(x_values, y_values, plot_type)
-
-
-def save_plot(xlabel, ylabel, title, imgpath):
-	'''Save the plotted graphs so far as specified path.'''
-	pylab.xlabel(xlabel)
-	pylab.ylabel(ylabel)
-	pylab.axis([0, 1, 0, 1])
-	pylab.title(title)
-	pylab.savefig(imgpath)
-	pylab.clf()
-
-
-def y_plots(results, results_dir, plot, alphas, betas, thresholds):
+def y_plots(results, plot, results_dir):
 	'''Single plots against threshold values for various alphas, betas for
 	all models.'''
+	plot_keys = [plot]
+
 	for key in results:
+		alphas = sorted(results[key].keys())
+		betas = sorted(results[key].keys())
+
 		for alpha in alphas:
 			for beta in betas:
-				draw_plot(results[key][alpha][beta], thresholds, plot, "bo-")
+				adPlotter.draw_plot_dict_keys(results[key][alpha][beta], \
+													plot_keys, ["bo-"], [None])
 				title = key + ", Alpha " + str(round(alpha, 1)) + ", Beta " + \
 							str(round(beta, 1))
 				imgpath = results_dir + "/" + key + "/" + plot + "-a" + \
 					str(round(alpha, 1)) + "-b" + str(round(beta, 1)) + ".png"
-				save_plot("Threshold", plot, title, imgpath)
+				adPlotter.save_plot("Threshold", plot, title, imgpath)
 
 		for alpha in alphas:
 			for beta in betas:
-				draw_plot(results[key][alpha][beta], thresholds, plot, "o-")
+				adPlotter.draw_plot_dict_keys(results[key][alpha][beta], \
+							plot_keys, ["o-"], ["beta=" + str(round(beta, 1))])
 
 			title = key + ", Alpha " + str(round(alpha, 1)) + ", All Betas"
 			imgpath = results_dir + "/" + key + "/" + plot + "-a" + \
 								str(round(alpha, 1)) + ".png"
-			save_plot("Threshold", plot, title, imgpath)
+			adPlotter.save_plot("Threshold", plot, title, imgpath)
 
 		for beta in betas:
 			for alpha in alphas:
-				draw_plot(results[key][alpha][beta], thresholds, plot, "o-")
+				adPlotter.draw_plot_dict_keys(results[key][alpha][beta], \
+						plot_keys, ["o-"], ["alpha=" + str(round(alpha, 1))])
 
 			title = key + ", Beta " + str(round(beta, 1)) + ", All Alphas"
 			imgpath = results_dir + "/" + key + "/" + plot + "-b" + \
 								str(round(beta, 1)) + ".png"
-			save_plot("Threshold", plot, title, imgpath)
+			adPlotter.save_plot("Threshold", plot, title, imgpath)
+		break
 
 
 def xy_plots(results, results_dir, plot1, plot2, alphas, betas, thresholds):
@@ -247,9 +187,9 @@ def x_y_plots(results, results_dir, plot1, plot2, alphas, betas, thresholds):
 def gen_plots(results, results_dir, alphas, betas, thresholds):
 	'''Draw various plots.'''
 	# for plot in ("accuracy", "precision", "recall", "tnr"):
-		# x_plots(results, results_dir, plot, alphas, betas, thresholds)
+		# y_plots(results, plot, results_dir)
 
-	xy_plots(results, results_dir, "precision", "recall", alphas, betas, thresholds)
+	# xy_plots(results, results_dir, "precision", "recall", alphas, betas, thresholds)
 	# xy_plots(results, results_dir, "recall", "precision", alphas, betas, thresholds)
 	# x_y_plots(results, results_dir, "precision", "recall", alphas, betas, thresholds)
 

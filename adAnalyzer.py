@@ -169,8 +169,11 @@ def max_score(ad_dict, alphas, betas):
 					if ad_dict[d][key][alpha][beta] == max_score:
 						max_ds.add(d)
 
-				maxes[key][alpha][beta] = {"ds": max_ds, \
+				if total_score > 0:
+					maxes[key][alpha][beta] = {"ds": max_ds, \
 										"score": max_score / float(total_score)}
+				else:
+					maxes[key][alpha][beta] = {"ds": max_ds, "score": 0}
 
 	return maxes
 
