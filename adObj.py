@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 2nd December, 2012
+Date: 24th December, 2012
 Purpose: An object type for Ads and its related operations.
 '''
 
@@ -34,6 +34,20 @@ def clean_url(url):
 	return re.sub(r'http[s]?://|www\.|\?.*', "", url).lower().strip("/")
 
 
+def remove_nonascii(text):
+	'''To replace as Non-ASCII characters with space. Safer than
+	decode("ascii", "ignore").encode("ascii") which causes spacing issues.'''
+	ascii_text = ""
+
+	for i in text:
+		if ord(i) < 128:
+			ascii_text += i
+		else:
+			ascii_text += " "
+
+	return ascii_text
+
+
 class AdObj(dict):
 	'''An ad is an extended dictionary corresponding to equal/similar Google Ads
 	containing the displayed URLs, googlead URLs, texts.'''
@@ -44,12 +58,13 @@ class AdObj(dict):
 
 		ad_words = []
 		displayed_urls = set()
-		for word in text.split():
-			word = word.decode("ascii", "ignore").encode("ascii")
+
+		for word in remove_nonascii(text).split():
 			if is_url(word):
 				displayed_urls.add(clean_url(word))
 			else:
 				ad_words.append(word)
+
 		self.displayed_urls = list(displayed_urls)
 
 		text = " ".join(ad_words).replace("  ", " ").replace(" - - ", " ")
@@ -81,9 +96,17 @@ class AdObj(dict):
 
 		'''
 		or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
-		Jacard Index, Many words match, many long words match, etc.
-		If there are common displayed_urls, AND ad_urls/text overlap.
+		Jacard Index, Many words match, many long words match, many chars match,
+		etc. If there are common displayed_urls, AND ad_urls/text overlap.
 		'''
+
+		'''If some displayed URLs match and those URLs are descriptive.'''
+		displayed = set(self.displayed_urls) & set(ad.displayed_urls)
+
+		if len(displayed) > 0:
+			for url in displayed:
+				if "/" in url:
+					return True
 
 		return False
 

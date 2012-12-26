@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 17th December, 2012
+Date: 26th December, 2012
 Purpose: To try out different heuristics to predict which Ds the ads are being
 targeted on.
 '''
@@ -12,8 +12,10 @@ import os
 
 AD_TRUTH = "dbs/adTruth.db"
 ACCOUNT_TRUTH = "dbs/accountTruth.db"
-MODELS = ["aggregation", "exponentiation", "weighted_aggregation", \
-			"weighted_exponentiation"]
+MODELS = ["p_aggregation", "p_exponentiation", "pr_aggregation", \
+			"pr_exponentiation", "wt_p_aggregation", "wt_p_exponentiation", \
+			"wt_pr_aggregation", "wt_pr_exponentiation"]
+# TODO: p_harmonic, pr_harmonic, wt_p_harmonic, wt_pr_harmonic
 
 def true_ds_of_accounts():
 	'''Return a dictionary of Account truth: for each account, its Ds.'''
@@ -112,9 +114,14 @@ def true_ds_of_ad_list(ad_list, ad_truth_ds):
 def calculate_scores(ad_d_dict, alphas, betas):
 	'''Compute confidence scores for an ad for different values of alpha and
 	beta when using:
-	aggregation = (alpha*tps) + ((1-alpha)*fps) + (beta*tns) + ((1-beta)*fns)
-	exponentiation = (alpha**tps) * ((1-alpha)**fps) * (beta**tns) * ((1-beta)**fns)
+	p_aggregation = (1*tps) + (alpha*fps) + (1*tns) + (beta*fns)
+	p_exponentiation = (1**tps) * (alpha**fps) * (1**tns) * (beta**fns)
+	p_harmonic = (2 + alpha + beta) / [(1/tps) + (alpha/fps) + (1/tns) + (beta/fns)]
+	pr_aggregation = (alpha*tps) + ((1-alpha)*fps) + (beta*tns) + ((1-beta)*fns)
+	pr_exponentiation = (alpha**tps) * ((1-alpha)**fps) * (beta**tns) * ((1-beta)**fns)
+	pr_harmonic = 2 / [(alpha/tps) + ((1-alpha)/fps) + (beta/tns) + ((1-beta)/fns)]
 	'''
+	# TODO: Harmonic means pending. Cases where denominators are 0.
 	scores = {}
 
 	for key in MODELS:
@@ -125,19 +132,31 @@ def calculate_scores(ad_d_dict, alphas, betas):
 			scores[key][alpha] = {}
 
 		for beta in betas:
-			scores["aggregation"][alpha][beta] = \
+			scores["p_aggregation"][alpha][beta] = \
+					(1*ad_d_dict["tps"]) + (alpha*ad_d_dict["fps"]) + \
+					(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
+			scores["p_exponentation"][alpha][beta] = \
+					(1**ad_d_dict["tps"]) * (alpha**ad_d_dict["fps"]) * \
+					(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
+			scores["pr_aggregation"][alpha][beta] = \
 					(alpha*ad_d_dict["tps"]) + ((1-alpha)*ad_d_dict["fps"]) + \
 					(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
-			scores["exponentiation"][alpha][beta] = \
+			scores["pr_exponentiation"][alpha][beta] = \
 					(alpha**ad_d_dict["tps"]) * ((1-alpha)**ad_d_dict["fps"]) *\
 					(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
-			scores["weighted_aggregation"][alpha][beta] = \
-					(alpha*ad_d_dict["weighted_tps"]) + \
-					((1-alpha)*ad_d_dict["weighted_fps"]) + \
+			scores["wt_p_aggregation"][alpha][beta] = \
+					(1*ad_d_dict["wt_tps"]) + (alpha*ad_d_dict["wt_fps"]) + \
+					(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
+			scores["wt_p_exponentiation"][alpha][beta] = \
+					(1**ad_d_dict["wt_tps"]) * (alpha**ad_d_dict["wt_fps"]) * \
+					(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
+			scores["wt_pr_aggregation"][alpha][beta] = \
+					(alpha*ad_d_dict["wt_tps"]) + \
+					((1-alpha)*ad_d_dict["wt_fps"]) + \
 					(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
-			scores["weighted_exponentiation"][alpha][beta] = \
-					(alpha**ad_d_dict["weighted_tps"]) * \
-					((1-alpha)**ad_d_dict["weighted_fps"]) * \
+			scores["wt_pr_exponentiation"][alpha][beta] = \
+					(alpha**ad_d_dict["wt_tps"]) * \
+					((1-alpha)**ad_d_dict["wt_fps"]) * \
 					(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
 
 	return scores
@@ -194,11 +213,11 @@ def analyze_ad(ad, ds_truth, alphas, betas):
 
 		for account in ad_accounts & ds_truth[d]:
 			analysis[d]["tps"] += 1
-			analysis[d]["weighted_tps"] += ad.accounts[account]
+			analysis[d]["wt_tps"] += ad.accounts[account]
 
 		for account in ad_accounts & (all_accounts - ds_truth[d]):
 			analysis[d]["fps"] += 1
-			analysis[d]["weighted_fps"] += ad.accounts[account]
+			analysis[d]["wt_fps"] += ad.accounts[account]
 
 		analysis[d]["fns"] = len(ad_accounts_not & ds_truth[d])
 		analysis[d]["tns"] = len(ad_accounts_not & (all_accounts - ds_truth[d]))

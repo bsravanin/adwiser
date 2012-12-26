@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 5th December, 2012
+Date: 24th December, 2012
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
@@ -9,7 +9,7 @@ HTLMParser to parse Gmail ads.
 from adObj import AdObj
 from HTMLParser import HTMLParser
 import adOps
-import magic, os
+import magic, os, re, sys
 
 
 NO_READ = 0
@@ -51,9 +51,10 @@ class AdParser(HTMLParser):
 	def handle_data(self, data):
 		if self.username == "" and self.tag == "title":
 			self.username = data.split(" - ")[1]
-		if self.read == CHECK_READ and ("512" in data or "128" in data):
+		if self.read == CHECK_READ and re.match(r'\d*$', data):
 			self.read = NO_READ
 			ad = AdObj(self.ad_url, self.ad_text, self.username)
+			print >> sys.stderr, ad.get_ad_str()	# DEBUG AD COMPARING
 			self.ad_list = adOps.include(self.ad_list, ad)
 			self.ad_text = ""
 			self.ad_url = ""
