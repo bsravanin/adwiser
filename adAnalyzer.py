@@ -124,12 +124,12 @@ def calculate_scores(ad_d_dict, alphas, betas):
 	# TODO: Harmonic means pending. Cases where denominators are 0.
 	scores = {}
 
-	for key in MODELS:
-		scores[key] = {}
+	for model in MODELS:
+		scores[model] = {}
 
 	for alpha in alphas:
-		for key in scores:
-			scores[key][alpha] = {}
+		for model in MODELS:
+			scores[model][alpha] = {}
 
 		for beta in betas:
 			scores["p_aggregation"][alpha][beta] = \
@@ -162,44 +162,72 @@ def calculate_scores(ad_d_dict, alphas, betas):
 	return scores
 
 
+def normalize_scores(ad_dict, alphas, betas):
+	'''Normalize scores for Ds of an ad to be between 0 and 1.'''
+	normal = {}
+
+	for model in MODELS:
+		normal[model] = {}
+
+		for alpha in alphas:
+			normal[model][alpha] = {}
+
+			for beta in betas:
+				normal[model][alpha][beta] = {}
+				total = 0
+
+				for d in ad_dict:
+					total += ad_dict[d][model][alpha][beta]
+
+				if total > 0:
+					for d in ad_dict:
+						normal[model][alpha][beta][d] = \
+								ad_dict[d][model][alpha][beta] / float(total)
+				else:
+					for d in ad_dict:
+						normal[model][alpha][beta][d] = 0
+
+	return normal
+
+
 def max_score(ad_dict, alphas, betas):
 	'''Find the Ds with various maximum scores in an ad.'''
 	maxes = {}
 
-	for key in MODELS:
-		maxes[key] = {}
+	for model in MODELS:
+		maxes[model] = {}
 
 		for alpha in alphas:
-			maxes[key][alpha] = {}
+			maxes[model][alpha] = {}
 
 			for beta in betas:
 				max_score = 0
 				total_score = 0
 
 				for d in ad_dict:
-					total_score += ad_dict[d][key][alpha][beta]
+					total_score += ad_dict[d][model][alpha][beta]
 
-					if ad_dict[d][key][alpha][beta] >= max_score:
-						max_score = ad_dict[d][key][alpha][beta]
+					if ad_dict[d][model][alpha][beta] >= max_score:
+						max_score = ad_dict[d][model][alpha][beta]
 
 				max_ds = set()
 
 				for d in ad_dict:
-					if ad_dict[d][key][alpha][beta] == max_score:
+					if ad_dict[d][model][alpha][beta] == max_score:
 						max_ds.add(d)
 
 				if total_score > 0:
-					maxes[key][alpha][beta] = {"ds": max_ds, \
+					maxes[model][alpha][beta] = {"ds": max_ds, \
 										"score": max_score / float(total_score)}
 				else:
-					maxes[key][alpha][beta] = {"ds": max_ds, "score": 0}
+					maxes[model][alpha][beta] = {"ds": max_ds, "score": 0}
 
 	return maxes
 
 
 def analyze_ad(ad, ds_truth, alphas, betas):
 	'''For each D, calcuate various scores about the probability that an ad may
-	be targeted on D. Based on the scores predict the most probable set of Ds'''
+	be targeted on D.'''
 	ad_accounts = set(ad.accounts.keys())
 	all_accounts = ds_truth["ALL"]
 	ad_accounts_not = all_accounts - ad_accounts
@@ -222,12 +250,10 @@ def analyze_ad(ad, ds_truth, alphas, betas):
 		analysis[d]["fns"] = len(ad_accounts_not & ds_truth[d])
 		analysis[d]["tns"] = len(ad_accounts_not & (all_accounts - ds_truth[d]))
 
-		scores = calculate_scores(analysis[d], alphas, betas)
+		analysis[d] = calculate_scores(analysis[d], alphas, betas)
 
-		for key in MODELS:
-			analysis[d][key] = scores[key]
-
-	return max_score(analysis, alphas, betas)
+	# return max_score(analysis, alphas, betas)
+	return normalize_scores(analysis, alphas, betas)
 
 
 def analyze_ads(ad_list, ds_truth, alphas, betas):
@@ -244,10 +270,17 @@ def analyze_ads(ad_list, ds_truth, alphas, betas):
 def verify_pred(predicted_ds_of_ad, true_ds_of_ad, all_ds, threshold):
 	'''Verify a particular prediction made about an ad given a threshold of
 	confidence score.'''
+	prediction = set()
+
+	for d in predicted_ds_of_ad:
+		if predicted_ds_of_ad[d] >= threshold:
+			prediction.add(d)
+
+	'''
+	# Predicting only max_confidence Ds. Needs max_score function to be used.
 	if predicted_ds_of_ad["score"] >= threshold:
 		prediction = predicted_ds_of_ad["ds"]
-	else:
-		prediction = set()
+	'''
 
 	result = {}
 	result["tps"] = len(prediction & true_ds_of_ad)
@@ -266,38 +299,36 @@ def verify_pred(predicted_ds_of_ad, true_ds_of_ad, all_ds, threshold):
 	return result
 
 
-def verify_prediction(analyzed_ad, true_ds_of_ad, \
-						all_ds, alphas, betas, thresholds):
+def verify_prediction(analyzed_ad, true_ds_of_ad, all_ds):
 	'''Verify the predictions made about an ad under various alphas, betas
 	considering various thresholds for various scores.'''
 	verification = {}
 
-	for key in MODELS:
-		verification[key] = {}
+	for model in analyzed_ad:
+		verification[model] = {}
 
-		for alpha in alphas:
-			verification[key][alpha] = {}
+		for alpha in analyzed_ad[model]:
+			verification[model][alpha] = {}
 
-			for beta in betas:
-				verification[key][alpha][beta] = {}
+			for beta in analyzed_ad[model][alpha]:
+				verification[model][alpha][beta] = {}
 
-				for threshold in thresholds:
-					verification[key][alpha][beta][threshold] = \
-									verify_pred(analyzed_ad[key][alpha][beta], \
+				for threshold in analyzed_ad[model][alpha][beta]:
+					verification[model][alpha][beta][threshold] = \
+									verify_pred(analyzed_ad[model][alpha][beta], \
 										true_ds_of_ad, all_ds, threshold)
 
 	return verification
 
 
-def verify_predictions(analyzed_ads, true_ds_of_ads, \
-						all_ds, alphas, betas, thresholds):
+def verify_predictions(analyzed_ads, true_ds_of_ads, all_ds):
 	'''Verify the predictions made about a list of ads under various alphas,
 	betas considering various thresholds for various scores.'''
 	verifications = []
 
 	for i in range(0, len(analyzed_ads)):
 		verifications.append(verify_prediction(analyzed_ads[i], \
-						true_ds_of_ads[i], all_ds, alphas, betas, thresholds))
+						true_ds_of_ads[i], all_ds))
 
 	return verifications
 
@@ -331,33 +362,33 @@ def aggregate_verifications(verifications, alphas, betas, thresholds):
 	betas and thresholds.'''
 	aggregates = {}
 
-	for key in MODELS:
-		aggregates[key] = {}
+	for model in MODELS:
+		aggregates[model] = {}
 
 		for alpha in alphas:
-			aggregates[key][alpha] = {}
+			aggregates[model][alpha] = {}
 
 			for beta in betas:
-				aggregates[key][alpha][beta] = {}
+				aggregates[model][alpha][beta] = {}
 
 				for threshold in thresholds:
 					aggregate = {}
 
-					for key2 in ("tps", "fps", "fns", "tns"):
-						aggregate[key2] = 0
+					for key in ("tps", "fps", "fns", "tns"):
+						aggregate[key] = 0
 					
 						for ad in verifications:
-							aggregate[key2] += \
-										ad[key][alpha][beta][threshold][key2]
+							aggregate[key] += \
+										ad[model][alpha][beta][threshold][key]
 
 					targeted = {"tps": 0, "fps": 0, "fns": 0, "tns": 0}
 
 					for ad in verifications:
-						key2 = ad[key][alpha][beta][threshold]["targeted"]
-						targeted[key2] += 1
+						key = ad[model][alpha][beta][threshold]["targeted"]
+						targeted[key] += 1
 
 					aggregate["targeted"] = compute_stats(targeted)
-					aggregates[key][alpha][beta][threshold] = \
+					aggregates[model][alpha][beta][threshold] = \
 													compute_stats(aggregate)
 
 	return aggregates

@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 24th December, 2012
+Date: 27th December, 2012
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
@@ -54,7 +54,7 @@ class AdParser(HTMLParser):
 		if self.read == CHECK_READ and re.match(r'\d*$', data):
 			self.read = NO_READ
 			ad = AdObj(self.ad_url, self.ad_text, self.username)
-			print >> sys.stderr, ad.get_ad_str()	# DEBUG AD COMPARING
+			# print >> sys.stderr, ad.get_ad_str()	# DEBUG AD COMPARING
 			self.ad_list = adOps.include(self.ad_list, ad)
 			self.ad_text = ""
 			self.ad_url = ""
@@ -86,3 +86,42 @@ def parse_html_set(html_set):
 			ad_list.append(parse_html(html_file))
 
 	return adOps.union(ad_list)
+
+
+def parse_conf(filename):
+	'''Read the config file containing a new-line separated list of usernames
+	and trial roots, and return a dictionary of users and their list of trial
+	filesets. The files are expected to be Gmail HTML files.'''
+	fd = open(filename, "r")
+	file_set_lists = {}
+
+	for line in fd.readlines():
+		if not line.startswith("#") and line != "\n":
+			words = line.strip().split()
+			user = words.pop(0)
+
+			if user not in file_set_lists:
+				file_set_lists[user] = []
+
+			for root_dir in words:
+				if not root_dir.startswith("/"):
+					root_dir = os.path.join(os.getcwd(), root_dir)
+	
+				if not os.path.isdir(root_dir):
+					print "ERROR:", root_dir, "is not a trial root directory."
+
+				for dirname in os.listdir(root_dir):
+					dirname = os.path.join(root_dir, dirname)
+
+					if not os.path.isdir(dirname):
+						print "ERROR:", dirname, "is not a trial directory."
+
+					file_set = set()
+
+					for filename in os.listdir(dirname):
+						file_set.add(os.path.join(dirname, filename))
+
+					file_set_lists[user].append(file_set)
+
+	fd.close()
+	return file_set_lists

@@ -100,13 +100,14 @@ class AdObj(dict):
 		etc. If there are common displayed_urls, AND ad_urls/text overlap.
 		'''
 
-		'''If some displayed URLs match and those URLs are descriptive.'''
+		'''If some displayed URLs match and those URLs are descriptive.
 		displayed = set(self.displayed_urls) & set(ad.displayed_urls)
 
 		if len(displayed) > 0:
 			for url in displayed:
 				if "/" in url:
 					return True
+		'''
 
 		return False
 

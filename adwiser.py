@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 19th December, 2012
+Date: 27th December, 2012
 Purpose: To find relevance and irrelevance of Ds.
 '''
 
@@ -16,32 +16,20 @@ else:
 	sys.exit(0)
 
 
-debug_str = ""
-
-import datetime
-ts = datetime.datetime
-
-def parse_conf(filename):
-	'''Read the config file containing a new-line separated list of files or
-	directories and return the set of files. The files are expected to be Gmail
-	HTML files.'''
-	fd = open(filename, "r")
+def get_file_set(file_sets, trials):
+	'''Get a cumulative fileset from all user filesets for the specified number
+	of trials.'''
 	file_set = set()
 
-	for line in fd.readlines():
-		if not line.startswith("#") and line != "\n":
-			root_dir = line.strip()
-			if not root_dir.startswith("/"):
-				root_dir = os.getcwd() + "/" + root_dir
-	
-			if os.path.isfile(root_dir):
-				file_set.add(root_dir)
-			elif os.path.isdir(root_dir):
-				for root, dirnames, filenames in os.walk(root_dir, followlinks=True):
-					for filename in filenames:
-						file_set.add(os.path.join(root, filename))
+	for user in file_sets:
+		for i in range(0, trials):
+			max_trials = len(file_sets[user])
 
-	fd.close()
+			if i < max_trials:
+				file_set |= file_sets[user][i]
+			else:
+				print "WARNING:", user, "only has", max_trials, " trials."
+
 	return file_set
 
 
@@ -106,7 +94,6 @@ def y_plots(results, plot, results_dir):
 			imgpath = results_dir + "/" + key + "/" + plot + "-b" + \
 								str(round(beta, 1)) + ".png"
 			adPlotter.save_plot("Threshold", plot, title, imgpath)
-		break
 
 
 def xy_plots(results, results_dir, plot1, plot2, alphas, betas, thresholds):
@@ -192,6 +179,7 @@ def gen_plots(results, results_dir, alphas, betas, thresholds):
 	# xy_plots(results, results_dir, "precision", "recall", alphas, betas, thresholds)
 	# xy_plots(results, results_dir, "recall", "precision", alphas, betas, thresholds)
 	# x_y_plots(results, results_dir, "precision", "recall", alphas, betas, thresholds)
+	pass
 
 
 def debug_logs(ad_list, dirname):
@@ -201,29 +189,38 @@ def debug_logs(ad_list, dirname):
 	fd.flush()
 	fd.close()
 
-	fd = open(dirname + "/debug.txt", "w")
-	fd.write(debug_str)
-	fd.flush()
-	fd.close()
 
+file_sets = adParser.parse_conf(adset_file)
+'''
+result_sets will be a mult-level dictionary of the following structure:
+result_sets[trial][model][alpha][beta][threshold]{targeted}[metric], where
+{targeted} is optional.
+'''
+result_sets = []
 
 account_truth = adAnalyzer.true_ds_of_accounts()
 ds_truth = adAnalyzer.true_accounts_of_ds()
 ad_truth_ds = adAnalyzer.true_ds_of_ads()
 # ad_truth_accounts = adAnalyzer.true_accounts_of_ads()
 
-alphas = float_range(0.5, 1, 0.1)
-betas = float_range(0.5, 1, 0.1)
-thresholds = float_range(0, 1, 0.1)
+trials = range(1, 100)
+alphas = betas = thresholds = float_range(0, 1, 0.1)
 
-ad_list = adParser.parse_html_set(parse_conf(adset_file))
-true_ds_of_ads = adAnalyzer.true_ds_of_ad_list(ad_list, ad_truth_ds)
-analyzed_ads = adAnalyzer.analyze_ads(ad_list, ds_truth, alphas, betas)
-verifications = adAnalyzer.verify_predictions(analyzed_ads, true_ds_of_ads, \
-								account_truth["ALL"], alphas, betas, thresholds)
-results = adAnalyzer.aggregate_verifications(verifications, alphas, betas, \
+for t in [int(sys.argv[2])]:	# DEBUG AD COMPARING
+# for t in trials:
+	file_set = get_file_set(file_sets, t)
+	ad_list = adParser.parse_html_set(file_set)
+	print adOps.get_ads_str(ad_list)	# DEBUG AD COMPARING
+	continue	# DEBUG AD COMPARING
+	true_ds_of_ads = adAnalyzer.true_ds_of_ad_list(ad_list, ad_truth_ds)
+	analyzed_ads = adAnalyzer.analyze_ads(ad_list, ds_truth, alphas, betas)
+	verifications = adAnalyzer.verify_predictions(analyzed_ads, \
+									true_ds_of_ads,	account_truth["ALL"])
+	results = adAnalyzer.aggregate_verifications(verifications, alphas, betas, \
 																	thresholds)
+	result_sets.append(results)
 
+sys.exit(0)	# DEBUG AD COMPARING
 make_dirs(results, results_dir)
 gen_plots(results, results_dir, alphas, betas, thresholds)
 debug_logs(ad_list, results_dir)
