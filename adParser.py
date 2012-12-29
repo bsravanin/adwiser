@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 27th December, 2012
+Date: 29th December, 2012
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
@@ -109,12 +109,14 @@ def parse_conf(filename):
 	
 				if not os.path.isdir(root_dir):
 					print "ERROR:", root_dir, "is not a trial root directory."
+					continue
 
 				for dirname in os.listdir(root_dir):
 					dirname = os.path.join(root_dir, dirname)
 
 					if not os.path.isdir(dirname):
 						print "ERROR:", dirname, "is not a trial directory."
+						continue
 
 					file_set = set()
 

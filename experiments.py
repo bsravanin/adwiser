@@ -41,7 +41,7 @@ def churn(adset_file, results_dir):
 	fd.close()
 
 
-def save_churn_png(min_uid, max_uid, results_dir):
+def save_churn_png(churn, min_uid, max_uid, results_dir):
 	'''Save the churn PNG with all rings and bells.'''
 	for user in churn:
 		uid = int(user.strip("ccloudauditor"))
@@ -79,8 +79,20 @@ def plot_churn(results_dir):
 
 	fd.close()
 
-	save_churn_png(10, 20, results_dir)
-	save_churn_png(21, 30, results_dir)
+	save_churn_png(churn, 10, 20, results_dir)
+	save_churn_png(churn, 21, 30, results_dir)
+
+
+def all_ads(adset_file):
+	'''Print all ads to stderr.'''
+	file_sets = adParser.parse_conf(adset_file)
+	html_set = set()
+
+	for user in file_sets:
+		for file_set in file_sets[user]:
+			html_set |= file_set
+
+	adParser.parse_html_set(html_set)
 
 
 def unique_ads(ads_file, unique_ads_file):
@@ -109,6 +121,18 @@ def unique_ads(ads_file, unique_ads_file):
 	fd.close()
 
 
+if not os.path.isdir(results_dir):
+	if os.path.exists(results_dir):
+		print dirname, "exists and is not a directory."
+	else:
+		os.makedirs(results_dir)
+
 # churn(adset_file, results_dir)
 # plot_churn(results_dir)
-# unique_ads(ads_file, results_dir + "/uniques.txt")
+# all_ads(adset_file)
+# unique_ads(adset_file, results_dir + "/uniques.txt")
+
+'''
+AWK script to measure performance of ad matching.
+awk 'BEGIN {tp=fp=fn=0} {for (i=1; i<=NF; i++) {if($i~/TP/) tp+=$i; if($i~/FP/) fp+=$i; if($i~/FN/) fn+=$i}} END {print tp" "fp" "fn}' performance_file
+'''

@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 24th December, 2012
+Date: 29th December, 2012
 Purpose: An object type for Ads and its related operations.
 '''
 
@@ -25,6 +25,8 @@ def clean_url(url):
 
 	if "/redir.php" in url:
 		url = re.sub(r'.+redir\.php.+http', "http", url)
+	else:
+		url = re.sub(r'http.+http:', "http:", url)
 
 	prev_url = ""
 	while url != prev_url:
