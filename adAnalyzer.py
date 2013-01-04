@@ -1,125 +1,40 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 26th December, 2012
+Date: 3rd January, 2013
 Purpose: To try out different heuristics to predict which Ds the ads are being
 targeted on.
 '''
 
 from adObj import AdObj
+from adGlobals import *
 import os
 
 
-AD_TRUTH = "dbs/adTruth.db"
-ACCOUNT_TRUTH = "dbs/accountTruth.db"
-MODELS = ["p_aggregation", "p_exponentiation", "pr_aggregation", \
-			"pr_exponentiation", "wt_p_aggregation", "wt_p_exponentiation", \
-			"wt_pr_aggregation", "wt_pr_exponentiation"]
-# TODO: p_harmonic, pr_harmonic, wt_p_harmonic, wt_pr_harmonic
-
-def true_ds_of_accounts():
-	'''Return a dictionary of Account truth: for each account, its Ds.'''
-	fd = open(ACCOUNT_TRUTH, "r")
-	all_ds = set()
-	account_truth = {}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			account_truth[words[0]] = frozenset(words[1:])
-			all_ds |= account_truth[words[0]]
-
-	fd.close()
-	account_truth["ALL"] = frozenset(all_ds)
-	return account_truth
-
-
-def true_accounts_of_ds():
-	'''Return a dictionary of D truth: for each D, its accounts.'''
-	account_truth = true_ds_of_accounts()
-	ds_truth = {"ALL":set()}
-
-	for account in account_truth:
-		if account == "ALL":
-			continue
-
-		ds_truth["ALL"].add(account)
-
-		for d in account_truth[account]:
-			if d in ds_truth:
-				ds_truth[d].add(account)
-			else:
-				ds_truth[d] = set([account])
-
-	return ds_truth
-
-
-def true_ds_of_ads():
-	'''Return a dictionary of Ad truth: for each ad, its Ds.'''
-	fd = open(AD_TRUTH, "r")
-	ad_truth_ds = {}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-
-			if len(words) > 1:
-				ad_truth_ds[words[0]] = frozenset(words[1:])
-
-	fd.close()
-	return ad_truth_ds
-
-
-def true_accounts_of_ads():
-	'''DEPRECATED: Return a dictionary of Ad truth: for each ad, its
-	accounts.'''
-	account_truth = accounts_of_ds()
-
-	fd = open(AD_TRUTH, "r")
-	ad_truth_accounts = {"ALL":account_truth["ALL"]}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			ad_truth_accounts[words[0]] = set()
-
-			if len(words) > 1:
-				for d in words[1:]:
-					ad_truth_accounts[words[0]] |= account_truth[d]
-
-	fd.close()
-	return ad_truth_accounts
-
-
-def true_ds_of_ad(ad, ad_truth_ds):
-	'''Find the true Ds of an ad, given the Ad truth.'''
-	true_ds = set()
-
-	for url in set(ad.ad_urls) & set(ad_truth_ds):
-		true_ds |= ad_truth_ds[url]
-
-	return true_ds
-
-
-def true_ds_of_ad_list(ad_list, ad_truth_ds):
-	'''Find the true Ds of an ad list, given the Ad truth.'''
+def true_ds_of_ad_list(ad_list):
+	'''Find the true Ds of an ad list, using the overall Ad truth.'''
 	true_ds_of_ads = []
 
 	for ad in ad_list:
-		true_ds_of_ads.append(true_ds_of_ad(ad, ad_truth_ds))
+		true_ds = set()
+
+		for url in set(ad.ad_urls) & set(AD_TRUTH):
+			true_ds |= AD_TRUTH[url]
+
+		true_ds_of_ads.append(true_ds)
 
 	return true_ds_of_ads
 
 
-def calculate_scores(ad_d_dict, alphas, betas):
+def calculate_scores(ad_d_dict):
 	'''Compute confidence scores for an ad for different values of alpha and
 	beta when using:
-	p_aggregation = (1*tps) + (alpha*fps) + (1*tns) + (beta*fns)
-	p_exponentiation = (1**tps) * (alpha**fps) * (1**tns) * (beta**fns)
+	p_agg = (1*tps) + (alpha*fps) + (1*tns) + (beta*fns)
+	p_exp = (1**tps) * (alpha**fps) * (1**tns) * (beta**fns)
 	p_harmonic = (2 + alpha + beta) / [(1/tps) + (alpha/fps) + (1/tns) + (beta/fns)]
-	pr_aggregation = (alpha*tps) + ((1-alpha)*fps) + (beta*tns) + ((1-beta)*fns)
-	pr_exponentiation = (alpha**tps) * ((1-alpha)**fps) * (beta**tns) * ((1-beta)**fns)
-	pr_harmonic = 2 / [(alpha/tps) + ((1-alpha)/fps) + (beta/tns) + ((1-beta)/fns)]
+	p_r_agg = (alpha*tps) + ((1-alpha)*fps) + (beta*tns) + ((1-beta)*fns)
+	p_r_exp = (alpha**tps) * ((1-alpha)**fps) * (beta**tns) * ((1-beta)**fns)
+	p_r_harmonic = 2 / [(alpha/tps) + ((1-alpha)/fps) + (beta/tns) + ((1-beta)/fns)]
 	'''
 	# TODO: Harmonic means pending. Cases where denominators are 0.
 	scores = {}
@@ -127,34 +42,34 @@ def calculate_scores(ad_d_dict, alphas, betas):
 	for model in MODELS:
 		scores[model] = {}
 
-	for alpha in alphas:
+	for alpha in ALPHAS:
 		for model in MODELS:
 			scores[model][alpha] = {}
 
-		for beta in betas:
-			scores["p_aggregation"][alpha][beta] = \
+		for beta in BETAS:
+			scores["p_agg"][alpha][beta] = \
 					(1*ad_d_dict["tps"]) + (alpha*ad_d_dict["fps"]) + \
 					(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
-			scores["p_exponentation"][alpha][beta] = \
+			scores["p_exp"][alpha][beta] = \
 					(1**ad_d_dict["tps"]) * (alpha**ad_d_dict["fps"]) * \
 					(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
-			scores["pr_aggregation"][alpha][beta] = \
+			scores["p_r_agg"][alpha][beta] = \
 					(alpha*ad_d_dict["tps"]) + ((1-alpha)*ad_d_dict["fps"]) + \
 					(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
-			scores["pr_exponentiation"][alpha][beta] = \
+			scores["p_r_exp"][alpha][beta] = \
 					(alpha**ad_d_dict["tps"]) * ((1-alpha)**ad_d_dict["fps"]) *\
 					(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
-			scores["wt_p_aggregation"][alpha][beta] = \
+			scores["wt_p_agg"][alpha][beta] = \
 					(1*ad_d_dict["wt_tps"]) + (alpha*ad_d_dict["wt_fps"]) + \
 					(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
-			scores["wt_p_exponentiation"][alpha][beta] = \
+			scores["wt_p_exp"][alpha][beta] = \
 					(1**ad_d_dict["wt_tps"]) * (alpha**ad_d_dict["wt_fps"]) * \
 					(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
-			scores["wt_pr_aggregation"][alpha][beta] = \
+			scores["wt_p_r_agg"][alpha][beta] = \
 					(alpha*ad_d_dict["wt_tps"]) + \
 					((1-alpha)*ad_d_dict["wt_fps"]) + \
 					(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
-			scores["wt_pr_exponentiation"][alpha][beta] = \
+			scores["wt_p_r_exp"][alpha][beta] = \
 					(alpha**ad_d_dict["wt_tps"]) * \
 					((1-alpha)**ad_d_dict["wt_fps"]) * \
 					(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
@@ -162,17 +77,17 @@ def calculate_scores(ad_d_dict, alphas, betas):
 	return scores
 
 
-def normalize_scores(ad_dict, alphas, betas):
+def normalize_scores(ad_dict):
 	'''Normalize scores for Ds of an ad to be between 0 and 1.'''
 	normal = {}
 
 	for model in MODELS:
 		normal[model] = {}
 
-		for alpha in alphas:
+		for alpha in ALPHAS:
 			normal[model][alpha] = {}
 
-			for beta in betas:
+			for beta in BETAS:
 				normal[model][alpha][beta] = {}
 				total = 0
 
@@ -185,22 +100,22 @@ def normalize_scores(ad_dict, alphas, betas):
 								ad_dict[d][model][alpha][beta] / float(total)
 				else:
 					for d in ad_dict:
-						normal[model][alpha][beta][d] = 0
+						normal[model][alpha][beta][d] = -1
 
 	return normal
 
 
-def max_score(ad_dict, alphas, betas):
+def max_score(ad_dict):
 	'''Find the Ds with various maximum scores in an ad.'''
 	maxes = {}
 
 	for model in MODELS:
 		maxes[model] = {}
 
-		for alpha in alphas:
+		for alpha in ALPHAS:
 			maxes[model][alpha] = {}
 
-			for beta in betas:
+			for beta in BETAS:
 				max_score = 0
 				total_score = 0
 
@@ -220,56 +135,57 @@ def max_score(ad_dict, alphas, betas):
 					maxes[model][alpha][beta] = {"ds": max_ds, \
 										"score": max_score / float(total_score)}
 				else:
-					maxes[model][alpha][beta] = {"ds": max_ds, "score": 0}
+					maxes[model][alpha][beta] = {"ds": max_ds, "score": -1}
 
 	return maxes
 
 
-def analyze_ad(ad, ds_truth, alphas, betas):
+def analyze_ad(ad):
 	'''For each D, calcuate various scores about the probability that an ad may
 	be targeted on D.'''
 	ad_accounts = set(ad.accounts.keys())
-	all_accounts = ds_truth["ALL"]
+	all_accounts = DS_TRUTH["ALL"]
 	ad_accounts_not = all_accounts - ad_accounts
 	analysis = {}
 
-	for d in ds_truth:
+	for d in DS_TRUTH:
 		if d == "ALL":
 			continue
 
-		analysis[d] = {"tps": 0, "weighted_tps": 0, "fps": 0, "weighted_fps": 0}
+		analysis[d] = {"tps": 0, "wt_tps": 0, "fps": 0, "wt_fps": 0}
 
-		for account in ad_accounts & ds_truth[d]:
+		for account in ad_accounts & DS_TRUTH[d]:
 			analysis[d]["tps"] += 1
 			analysis[d]["wt_tps"] += ad.accounts[account]
 
-		for account in ad_accounts & (all_accounts - ds_truth[d]):
+		for account in ad_accounts & (all_accounts - DS_TRUTH[d]):
 			analysis[d]["fps"] += 1
 			analysis[d]["wt_fps"] += ad.accounts[account]
 
-		analysis[d]["fns"] = len(ad_accounts_not & ds_truth[d])
-		analysis[d]["tns"] = len(ad_accounts_not & (all_accounts - ds_truth[d]))
+		analysis[d]["fns"] = len(ad_accounts_not & DS_TRUTH[d])
+		analysis[d]["tns"] = len(ad_accounts_not & (all_accounts - DS_TRUTH[d]))
 
-		analysis[d] = calculate_scores(analysis[d], alphas, betas)
+		analysis[d] = calculate_scores(analysis[d])
 
-	# return max_score(analysis, alphas, betas)
-	return normalize_scores(analysis, alphas, betas)
+	# return max_score(analysis)
+	return normalize_scores(analysis)
 
 
-def analyze_ads(ad_list, ds_truth, alphas, betas):
+def analyze_ads(ad_list):
 	'''For each Ad in a list, make various predictions and calcuate confidence
 	scores under various alphas and betas.'''
 	analyzed_ads = []
 
 	for ad in ad_list:
-		analyzed_ads.append(analyze_ad(ad, ds_truth, alphas, betas))
+		analyzed_ads.append(analyze_ad(ad))
 
 	return analyzed_ads
 
 
-def verify_pred(predicted_ds_of_ad, true_ds_of_ad, all_ds, threshold):
+def verify_pred(predicted_ds_of_ad, true_ds_of_ad, threshold):
 	'''Verify a particular prediction made about an ad given a threshold of
 	confidence score.'''
+	all_ds = ACCOUNT_TRUTH["ALL"]
 	prediction = set()
 
 	for d in predicted_ds_of_ad:
@@ -296,10 +212,11 @@ def verify_pred(predicted_ds_of_ad, true_ds_of_ad, all_ds, threshold):
 		result["targeted"] = "tns"
 	elif len(prediction) == 0 and len(true_ds_of_ad) > 0:
 		result["targeted"] = "fns"
+
 	return result
 
 
-def verify_prediction(analyzed_ad, true_ds_of_ad, all_ds):
+def verify_prediction(analyzed_ad, true_ds_of_ad):
 	'''Verify the predictions made about an ad under various alphas, betas
 	considering various thresholds for various scores.'''
 	verification = {}
@@ -313,22 +230,22 @@ def verify_prediction(analyzed_ad, true_ds_of_ad, all_ds):
 			for beta in analyzed_ad[model][alpha]:
 				verification[model][alpha][beta] = {}
 
-				for threshold in analyzed_ad[model][alpha][beta]:
+				for threshold in THRESHOLDS:
 					verification[model][alpha][beta][threshold] = \
-									verify_pred(analyzed_ad[model][alpha][beta], \
-										true_ds_of_ad, all_ds, threshold)
+								verify_pred(analyzed_ad[model][alpha][beta], \
+													true_ds_of_ad, threshold)
 
 	return verification
 
 
-def verify_predictions(analyzed_ads, true_ds_of_ads, all_ds):
+def verify_predictions(adwiser):
 	'''Verify the predictions made about a list of ads under various alphas,
 	betas considering various thresholds for various scores.'''
 	verifications = []
 
-	for i in range(0, len(analyzed_ads)):
-		verifications.append(verify_prediction(analyzed_ads[i], \
-						true_ds_of_ads[i], all_ds))
+	for i in range(0, len(adwiser["ads"])):
+		verifications.append(verify_prediction(adwiser["prediction"][i], \
+														adwiser["truth"][i]))
 
 	return verifications
 
@@ -357,7 +274,7 @@ def compute_stats(result):
 	return result
 
 
-def aggregate_verifications(verifications, alphas, betas, thresholds):
+def aggregate_verifications(verifications):
 	'''Aggregate the verifications made about a list of ads for various alphas,
 	betas and thresholds.'''
 	aggregates = {}
@@ -365,18 +282,18 @@ def aggregate_verifications(verifications, alphas, betas, thresholds):
 	for model in MODELS:
 		aggregates[model] = {}
 
-		for alpha in alphas:
+		for alpha in ALPHAS:
 			aggregates[model][alpha] = {}
 
-			for beta in betas:
+			for beta in BETAS:
 				aggregates[model][alpha][beta] = {}
 
-				for threshold in thresholds:
+				for threshold in THRESHOLDS:
 					aggregate = {}
 
 					for key in ("tps", "fps", "fns", "tns"):
 						aggregate[key] = 0
-					
+	
 						for ad in verifications:
 							aggregate[key] += \
 										ad[model][alpha][beta][threshold][key]

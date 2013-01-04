@@ -1,14 +1,14 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 30th December, 2012
+Date: 2nd January, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
 functions.
 '''
 
-import adOps, adParser
+import adLib, adOps, adParser
 import os, pylab, sys
 
 
@@ -156,13 +156,6 @@ awk 'BEGIN {tp=fp=fn=0} {for (i=1; i<=NF; i++) {if($i~/TP/) tp+=$i; if($i~/FP/) 
 '''
 
 
-def dump_ads(ad_list, filename):
-	fd = open(filename, "w")
-	fd.write(adOps.get_ads_str(ad_list))
-	fd.flush()
-	fd.close()
-
-
 def compare_accounts(adset_file, results_dir):
 	file_sets = adParser.parse_conf(adset_file)
 	base_file_sets = file_sets["base"]
@@ -173,7 +166,7 @@ def compare_accounts(adset_file, results_dir):
 	for b in range(0, len(base_file_sets)):
 		print "BaseTrial", b
 		base_ads = adParser.parse_html_set(base_file_sets[b])
-		dump_ads(base_ads, results_dir + "/base" + str(b) + ".txt")
+		adLib.dump_ads(base_ads, results_dir + "/base" + str(b) + ".txt")
 		base_count = len(base_ads)
 		other_ads = []
 		prev_diff = base_count
@@ -192,9 +185,9 @@ def compare_accounts(adset_file, results_dir):
 			if diff == 0:
 				break
 
-		dump_ads(base_ads, results_dir + "/diff" + str(b) + ".txt")
+		adLib.dump_ads(base_ads, results_dir + "/diff" + str(b) + ".txt")
 
-	dump_ads(other_ads, results_dir + "/other.txt")
+	adLib.dump_ads(other_ads, results_dir + "/other.txt")
 
 	fd = open(results_dir + "/results.txt", "w")
 	fd.write(result_str)
@@ -202,8 +195,65 @@ def compare_accounts(adset_file, results_dir):
 	fd.close()
 
 
+def plot_comparison(results_dir):
+	fd = open(results_dir + "/results.txt", "r")
+	bases = []
+	counts = []
+	others = []
+	misses = []
+	founds = []
+
+	for line in fd.readlines():
+		if "BaseTrial" in line:
+			continue
+
+		base, count, other, missed = line.strip().split()
+		base = int(base) + 1
+		count = int(count)
+		other = int(other) + 1
+		missed = int(missed)
+		found = 1 - (missed/float(count))
+
+		if len(bases) > 0 and bases[-1] == base:
+			others[-1] = other
+			misses[-1] = missed
+			founds[-1] = found
+		else:
+			bases.append(base)
+			counts.append(int(count))
+			others.append(other)
+			misses.append(missed)
+			founds.append(found)
+
+	fd.close()
+
+	pylab.ylim([0, 1])
+	pylab.yticks(adLib.float_range(0, 1, 0.1))
+	pylab.xlabel("Base Trial")
+	pylab.ylabel("Fraction of Ads Found")
+	pylab.plot(bases, founds, "b.", label="Found " + \
+										str(round(sum(founds)/len(founds), 3)))
+	pylab.legend(loc="upper left", prop={'size':10})
+	pylab.title("Common Ads in Identical Accounts")
+
+	pylab.twinx()
+	pylab.xlim([0, 100])
+	pylab.xticks(range(0, 100, 10))
+	pylab.ylim([0, 15])
+	pylab.yticks(range(0, 15, 1))
+	pylab.ylabel("Number of Trials to Find Base Ads")
+	pylab.plot(bases, others, "r.", label="In Trials " + \
+								str(round(sum(others)/float(len(others)), 3)))
+	pylab.legend(loc="lower right", prop={'size':10})
+
+	pylab.savefig(results_dir + "/results.png")
+	pylab.clf()
+	print results_dir, sum(counts)/float(len(counts)), sum(misses)/float(len(misses))
+
+
 # churn(sys.argv[1], sys.argv[2])
 # plot_churn(sys.argv[1])
 # all_ads(sys.argv[1])
 # unique_ads(sys.argv[1], sys.argv[2] + "/uniques.txt")
-compare_accounts(sys.argv[1], sys.argv[2])
+# compare_accounts(sys.argv[1], sys.argv[2])
+# plot_comparison(sys.argv[1])

@@ -1,11 +1,29 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 19th December, 2012
+Date: 3rd January, 2013
 Purpose: To draw different kinds of plots.
 '''
 
-import pylab
+import os, pylab
+from adGlobals import *
+
+
+def make_plot_dirs(dirname):
+	'''Create the required directories for plots.'''
+	targeted_dir = dirname + "/targeted"
+
+	if not os.path.exists(targeted_dir):
+		os.makedirs(targeted_dir)
+
+	for model in MODELS:
+		for x_key in ["alpha", "beta", "threshold"]:
+			dir2 = "/" + model + "/" + x_key
+
+			if not os.path.exists(dirname + dir2):
+				os.makedirs(dirname + dir2)
+			if not os.path.exists(targeted_dir + dir2):
+				os.makedirs(targeted_dir + dir2)
 
 
 def draw_plot_dict_keys(plot_dict, keys, plot_types, labels, targeted=False):
@@ -46,14 +64,14 @@ def save_plot(xlabel, ylabel, title, imgpath):
 	'''Save the plotted graphs so far as specified path.'''
 	pylab.xlabel(xlabel)
 	pylab.ylabel(ylabel)
-	# pylab.axis([0, 1, 0, 1])
+	pylab.axis([0, 1, 0, 1])
 	pylab.title(title)
 	pylab.legend()
 	pylab.savefig(imgpath)
 	pylab.clf()
 
 
-def draw_plots(results_set, fixed_params, x_key, metrics):
+def draw_plots(results_dir, results_set, fixed_params, x_key, metrics):
 	'''Draw plots fixing the keys in fixed_params to their values, plotting all
 	possible values of metrics agains values of x_key.'''
 	if x_key in fixed_params:
@@ -65,71 +83,102 @@ def draw_plots(results_set, fixed_params, x_key, metrics):
 		return
 
 	x_values = []
-	y_values = []
+	y_values = {}
 	model = fixed_params["model"]
+	title = model + ". "
+	label = ""
+	imgpath = model + "/" + x_key + "/"
 
 	if "targeted" in fixed_params:
-		title = "Targeted " + model + ". "
+		title = "Targeted " + title
+		imgpath = results_dir + "/targeted/" + imgpath
 	else:
-		title = model + ". "
+		imgpath = results_dir + "/" + imgpath
 
-	for trial in results_set:
-		label = ""
+	if "alpha" in fixed_params:
+		alphas = [fixed_params["alpha"]]
+		title += "Alpha " + str(alphas[0]) + ". "
+		imgpath += "a" + str(alphas[0]) + "-"
+	elif x_key == "alpha":
+		alphas = x_values = ALPHAS
 
-		if "trial" in fixed_params:
-			trial = fixed_params["trial"]
-			title += "Trials " + str(trial) + ". "
-		elif x_key == "trial":
-			x_values.append(trial)
-		else:
-			title += "All Trials. "
-			label += "Trials = " + str(trial) + ". "
+	if "beta" in fixed_params:
+		betas = [fixed_params["beta"]]
+		title += "Beta " + str(betas[0]) + ". "
+		imgpath += "b" + str(betas[0]) + "-"
+	elif x_key == "beta":
+		betas = x_values = BETAS
 
-		for alpha in results_set[trial][model]:
-			if "alpha" in fixed_params:
-				alpha = fixed_params["alpha"]
-				title += "Alpha " + str(alpha) + ". "
-			elif x_key == "alpha":
-				x_values.append(alpha)
-			else:
-				title += "All Alphas. "
-				label += "Alpha = " + str(alpha) + ". "
+	if "threshold" in fixed_params:
+		thresholds = [fixed_params["threshold"]]
+		title += "Threshold " + str(thresholds[0]) + "."
+		imgpath += "t" + str(thresholds[0])
+	elif x_key == "threshold":
+		thresholds = x_values = THRESHOLDS
 
-			for beta in results_set[trial][model][alpha]:
-				if "beta" in fixed_params:
-					beta = fixed_params["beta"]
-					title += "Beta " + str(beta) + ". "
-				elif x_key == "beta":
-					x_values.append(beta)
+	for metric in metrics:
+		y_values[metric] = []
+
+	for alpha in alphas:
+		if "alpha" not in fixed_params and x_key != "alpha":
+			title += "All Alphas. "
+			label += "Alpha = " + str(alpha) + ". "
+
+		for beta in betas:
+			if "beta" not in fixed_params and x_key != "beta":
+				title += "All Betas. "
+				label += "Beta = " + str(beta) + ". "
+
+			for threshold in thresholds:
+				if "threshold" not in fixed_params and x_key != "threshold":
+					title += "All Thresholds. "
+					label += "Threshold = " + str(threshold) + ". "
+
+				if "targeted" in fixed_params:
+					for metric in metrics:
+						y_values[metric].append(results_set[model][alpha][beta][threshold]["targeted"][metric])
 				else:
-					title += "All Betas. "
-					label += "Beta = " + str(beta) + ". "
+					for metric in metrics:
+						y_values[metric].append(results_set[model][alpha][beta][threshold][metric])
 
-				for threshold in results_set[trial][model][alpha][beta]:
-					if "threshold" in fixed_params:
-						threshold = fixed_params["threshold"]
-						title += "Threshold " + str(threshold)
-					elif x_key == "threshold":
-						x_values.append(threshold)
-					else:
-						title += "All Thresholds. "
-						label += "Threshold = " + str(threshold) + ". "
+	for metric in metrics:
+		pylab.plot(x_values, y_values[metric], "o-", label=metric)
+	save_plot(x_key, "", title, imgpath.strip("-") + ".png")
 
-					if "targeted" in fixed_params:
-						for metric in metrics:
-							pass
-					else:
-						for metric in metrics:
-							pass
+	if "precision" in metrics and "recall" in metrics:
+		precision = []
+		recall = []
 
-					if "threshold" in fixed_params:
-						break
+		for i in sorted(enumerate(y_values["precision"]), key=lambda x:x[1]):
+			precision.append(y_values["precision"][i[0]])
+			recall.append(y_values["recall"][i[0]])
 
-				if "beta" in fixed_params:
-					break
+		pylab.plot(precision, recall, "o-")
+		save_plot("Precision", "Recall", title, imgpath.strip("-") + "-PvR.png")
 
-			if "alpha" in fixed_params:
-				break
 
-		if "trial" in fixed_params:
-			break
+def draw_all_plots(results_dir, results_set):
+	'''Draw all possible plots for all models, alphas, betas and thresholds.'''
+	make_plot_dirs(results_dir)
+
+	for model in MODELS:
+		for alpha in ALPHAS:
+			for beta in BETAS:
+				fixed_params = {"model": model, "alpha": alpha, "beta": beta, \
+															"targeted": True}
+				draw_plots(results_dir, results_set, fixed_params, "threshold", \
+														["precision", "recall"])
+
+		for alpha in ALPHAS:
+			for threshold in THRESHOLDS:
+				fixed_params = {"model": model, "alpha": alpha, \
+									"threshold": threshold, "targeted": True}
+				draw_plots(results_dir, results_set, fixed_params, "beta", \
+														["precision", "recall"])
+
+		for beta in BETAS:
+			for threshold in THRESHOLDS:
+				fixed_params = {"model": model, "beta": beta, \
+									"threshold": threshold, "targeted": True}
+				draw_plots(results_dir, results_set, fixed_params, "alpha", \
+														["precision", "recall"])

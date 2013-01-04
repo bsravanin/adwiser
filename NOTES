@@ -1,0 +1,51 @@
+GOALS
+Why was an ad shown?
+	Was it targeted on a D or a R/X?
+	If targeted on a D, which D?
+
+
+ASSUMPTIONS
+Rs are rarely repeated across any accounts.
+
+
+KNOWLEDGE
+Some ads are targeted on Ds (emails).
+Ratio of number of targeted ads and number of trials is a decreasing function.
+Targeted ads are repeated across accounts with common Ds.
+Xs are repeated across similar accounts even with no common Ds.
+
+
+GRAPHS
+Precision & Recall
+	Fix trials based on knees of previous graph. Use max_trials if not possible.
+	foreach (alpha, beta, model) threshold on x-axis.
+	foreach (threshold, alpha, model) beta on x-axis.
+	foreach (threshold, beta, model) alpha on x-axis.
+
+
+TODOS
+Number of targeted ads on Y-axis, number of trials on X-axis.
+3. Prediction of all Ds above threshold and not just max_Ds: find precision and recall.
+	Though precision will decrease as recall increases, the knee should have a somewhat high precision and recall simultaneously.
+	Find alphas, betas, thresholds, models which give good precision and recall.
+4. Reasons for bad precision and recall of targeted Vs untargeted:
+	RULED OUT: Bad ad matching.
+	Wrong assumptions. Validate or invalidate assumptions. What are the assumptions? How?
+	Bad experimental setup. What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
+	Bad prediction and scoring. What makes a good scoring model for predictions?
+5. Area under precision and recall curve is the efficiency of a model.
+LOWPRI: Describe inputs and outputs along with the purpose for all functions.
+
+
+DONE
+1. Ad matching: find precision and recall.
+	foreach (ad1, ad2), 1 if ads are same and 0 otherwise.
+	90% precision and 80% recall is a good matching model.
+	If good matching model, ignore ad matching.
+	Matching with only exact match of AdURL/Text: 487 TPs, 53 FPs, 28 FNs
+	Precision: 0.9018518518518519, Recall: 0.945631067961165
+2. ads Vs trials graph.
+	Knee around 33 trials for ccloudauditor10-30.
+	Knees 3, 4 for ccloudauditor, ccloudauditor2.
+3. Common ads in identical accounts.
+4. Common ads in similar accounts.
