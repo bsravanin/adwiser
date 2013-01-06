@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 26th November, 2012
+Date: 5th January, 2013
 Purpose: Verify whether a trial was okay or not.
 '''
 
@@ -15,7 +15,15 @@ else:
 
 
 def get_trials(trial_root):
-	'''Get the set of trials in trial_root.'''
+	'''Get the set of trials in trial_root.
+
+	Args:
+		trial_root: The root directory (e.g. "logs" or "logs/ccloudauditor")
+		which contains the trial directories.
+
+	Returns:
+		trial_set: A set of trial directories.
+	'''
 	trial_set = set()
 
 	if os.path.isdir(trial_root):
@@ -27,7 +35,11 @@ def get_trials(trial_root):
 
 
 def verify(trial_dir):
-	'''Verify whether a trial went smoothly.'''
+	'''Verify whether a trial went smoothly by spitting out warnings to stdout.
+
+	Args:
+		trial_dir: A trial directory containing a list of HTML files.
+	'''
 	html_files = set()
 
 	for filename in os.listdir(trial_dir):

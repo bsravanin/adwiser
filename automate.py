@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 27th November, 2012
+Date: 5th January, 2013
 Purpose: Automate Gmail navigation using Selenium.
 TODO: How to tell whether a page, including advertisements, loaded fully?
 '''
@@ -11,6 +11,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import selenium.webdriver.support.ui as ui
 import datetime, os, subprocess, sys, time
+
 
 if len(sys.argv) > 3:
 	accounts_file = sys.argv[1]
@@ -35,7 +36,15 @@ opened = 0
 
 
 def get_dirname(dirname, username):
-	'''Create a dirname based on username and timestamp to save the trial.'''
+	'''Create a dirname based on username and timestamp to save the trial.
+
+	Args:
+		dirname: Root directory under which trial has to be saved.
+		username: Username directory which the trial belongs to.
+
+	Returns:
+		String which is a directory path.
+	'''
 	timestamp = ts.today()
 	return dirname + "/" + username + "/" + str(timestamp.year) + "-" \
 			+ str(timestamp.month) + "-" + str(timestamp.day) + "_" \
@@ -44,6 +53,12 @@ def get_dirname(dirname, username):
 
 
 def save_page(dirname, filename):
+	'''Save the displayed Gmail page as a HTML file.
+
+	Args:
+		dirname: Path to trial directory.
+		filename: Filename where the page needs to be saved.
+	'''
 	filepath = dirname + "/" + filename
 	fd = open(filepath, "w")
 	fd.write(browser.page_source.encode("utf-8"))
@@ -52,6 +67,13 @@ def save_page(dirname, filename):
 
 
 def login(username, password, save_dir):
+	'''Log into a Gmail account and save the inbox page.
+
+	Args:
+		username: Username of Gmail account.
+		password: Password of Gmail account.
+		save_dir: Path to the trial directory.
+	'''
 	global prev_url
 	browser.get("https://mail.google.com")
 	wait.until(lambda browser: browser.find_element_by_id("signIn"))
@@ -70,7 +92,11 @@ def login(username, password, save_dir):
 
 
 def verify_click():
-	'''Verify whether click loaded a new page.'''
+	'''Verify whether click loaded a new page.
+
+	Returns:
+		True or False
+	'''
 	global prev_url
 	global opened
 	curr_url = browser.current_url.encode("utf-8")
@@ -84,7 +110,14 @@ def verify_click():
 
 
 def open_email(save_dir):
-	'''Open first email.'''
+	'''Open first email.
+
+	Args:
+		save_dir: Path to the trial directory.
+
+	Returns:
+		True or False
+	'''
 	try:
 		browser.find_element_by_xpath("//div[@title='Older']").send_keys("o")
 	except:
@@ -100,11 +133,16 @@ def open_email(save_dir):
 
 
 def navigate(save_dir):
-	'''Navigate emails.'''
+	'''Navigate emails.
+
+	Args:
+		save_dir: Path to the trial directory.
+	'''
 	i = 2
 	while True:
 		try:
-			if "ccloudauditor/" in save_dir or "ccloudauditor2/" in save_dir or "ccloudauditor13/" in save_dir:
+			if "ccloudauditor/" in save_dir or "ccloudauditor2/" in save_dir
+				or "ccloudauditor13/" in save_dir:
 				browser.find_element_by_xpath("//div[@aria-label='Older']").click()
 			else:
 				browser.find_element_by_xpath("//div[@aria-label='Older Conversation']").click()
@@ -122,13 +160,21 @@ def navigate(save_dir):
 
 
 def logout():
+	'''Log out of the Gmail account and delete all cookies.'''
 	browser.get("https://mail.google.com/mail/?logout&hl=en&hlor")
 	time.sleep(LOAD_TIME)
 	browser.delete_all_cookies()
 
 
 def get_accounts(filename):
-	'''Read account usernames and passwords into a dict.'''
+	'''Read account usernames and passwords into a dict.
+
+	Args:
+		filename: File with Gmail usernames and passwords.
+
+	Returns:
+		accounts: Dictionary of Gmail usernames and passwords.
+	'''
 	accounts = {}
 	fd = open(filename, "r")
 	for line in fd.readlines():
@@ -139,7 +185,12 @@ def get_accounts(filename):
 
 
 def run_trials(accounts, trials):
-	'''Run a bunch of trials on every account.'''
+	'''Run a bunch of trials on every account.
+
+	Args:
+		accounts: Dictionary of Gmail usernames and passwords.
+		trials: Number of trials to run.
+	'''
 	global opened
 	global prev_url
 	for i in range(trials):

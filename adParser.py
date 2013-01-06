@@ -1,10 +1,11 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 29th December, 2012
+Date: 5th January, 2013
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
+
 
 from adObj import AdObj
 from HTMLParser import HTMLParser
@@ -63,11 +64,19 @@ class AdParser(HTMLParser):
 
 
 	def get_ads(self):
+		'''Returns a list of ads found while parsing the HTML file.'''
 		return self.ad_list
 
 
 def parse_html(html_file):
-	'''Parse HTML to get ads in it.'''
+	'''Parse HTML to get ads in it.
+
+	Args:
+		html_file: HTML file which is a dump of a Gmail page.
+
+	Returns:
+		List of ads.
+	'''
 	fd = open(html_file, "r")
 	parser = AdParser()
 	parser.init_parser()
@@ -77,7 +86,14 @@ def parse_html(html_file):
 
 
 def parse_html_set(html_set):
-	'''Parse a set of HTMLs to get union of ads in them.'''
+	'''Parse a set of HTMLs to get union of ads in them.
+
+	Args:
+		html_set: Any iterable collection of HTML files.
+
+	Returns:
+		List of ad objects.
+	'''
 	ad_list = []
 
 	for html_file in html_set:
@@ -88,11 +104,19 @@ def parse_html_set(html_set):
 	return adOps.union(ad_list)
 
 
-def parse_conf(filename):
+def parse_conf(conf_file):
 	'''Read the config file containing a new-line separated list of usernames
 	and trial roots, and return a dictionary of users and their list of trial
-	filesets. The files are expected to be Gmail HTML files.'''
-	fd = open(filename, "r")
+	filesets. The files are expected to be Gmail HTML files.
+
+	Args:
+		conf_file: Config file like "accounts.cf".
+
+	Returns:
+		file_set_lists: Dictionary with keys as users and values as a list of
+		sets, where each set contains the HTML files in a trial directory.
+	'''
+	fd = open(conf_file, "r")
 	file_set_lists = {}
 
 	for line in fd.readlines():

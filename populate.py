@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 18th November, 2012
+Date: 5th January, 2013
 Purpose: To populate a Gmail account with some of the emails in the mailbox.
 '''
 
@@ -19,14 +19,30 @@ else:
 	sys.exit(-1)
 
 
-# Stupid natural sort. Ref: http://stackoverflow.com/a/4836734
 def natural_sort(l): 
+	'''Stupid natural sort.
+
+	Args:
+		l: list of sortable items, specifically real numbers.
+
+	Returns:
+		A list of items sorted naturally. e.g. 2, 10 instead of 10, 2.
+
+	Reference:
+		http://stackoverflow.com/a/4836734
+	'''
 	convert = lambda text: int(text) if text.isdigit() else text.lower() 
 	alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
 	return sorted(l, key = alphanum_key)
 
 
 def send_thread(tid):
+	'''Send an email thread based on its tid.
+
+	Args:
+		tid: Thread ID, an integer.
+	'''
+
 	mail_dir = "mailbox/" + tid
 
 	fd = open(mail_dir + "/subject", "r")
@@ -44,6 +60,7 @@ def send_thread(tid):
 
 
 def send_threads(tids):
+	'''Send a list of email threads.'''
 	for tid in tids:
 		send_thread(tid)
 

@@ -1,9 +1,10 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 3rd January, 2013
+Date: 5th January, 2013
 Purpose: A library of miscellaneous functions.
 '''
+
 
 import os
 import adOps
@@ -11,7 +12,14 @@ from adObj import AdObj
 
 
 def true_ds_of_accounts(account_truth_db):
-	'''Return a dictionary of Account truth: for each account, its Ds.'''
+	'''Return a dictionary of Account truth: for each account, its Ds.
+
+	Args:
+		account_truth_db: File with account truth, e.g. "dbs/accountTruth.db".
+
+	Returns:
+		account_truth: Dictionary with accounts as keys and set of Ds as values.
+	'''
 	fd = open(account_truth_db, "r")
 	all_ds = set()
 	account_truth = {}
@@ -28,7 +36,14 @@ def true_ds_of_accounts(account_truth_db):
 
 
 def true_accounts_of_ds(account_truth):
-	'''Return a dictionary of D truth: for each D, its accounts.'''
+	'''Return a dictionary of D truth: for each D, its accounts.
+
+	Args:
+		account_truth: Dictionary with accounts as keys and set of Ds as values.
+
+	Returns:
+		ds_truth: Dictionary with Ds as keys and set of accounts as values.
+	'''
 	ds_truth = {"ALL":set()}
 
 	for account in account_truth:
@@ -47,7 +62,14 @@ def true_accounts_of_ds(account_truth):
 
 
 def true_ds_of_ads(ad_truth_db):
-	'''Return a dictionary of Ad truth: for each ad, its Ds.'''
+	'''Return a dictionary of Ad truth: for each ad, its Ds.
+
+	Args:
+		ad_truth_db: File with ad truth, e.g. "dbs/adTruth.db".
+
+	Returns:
+		ad_truth_ds: Dictionary with AdURL as keys and set of Ds as values.
+	'''
 	fd = open(ad_truth_db, "r")
 	ad_truth_ds = {}
 
@@ -64,29 +86,14 @@ def true_ds_of_ads(ad_truth_db):
 	return ad_truth_ds
 
 
-def true_accounts_of_ads():
-	'''DEPRECATED: Return a dictionary of Ad truth: for each ad, its
-	accounts.'''
-	account_truth = accounts_of_ds()
-
-	fd = open(AD_TRUTH, "r")
-	ad_truth_accounts = {"ALL":account_truth["ALL"]}
-
-	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
-			ad_truth_accounts[words[0]] = set()
-
-			if len(words) > 1:
-				for d in words[1:]:
-					ad_truth_accounts[words[0]] |= account_truth[d]
-
-	fd.close()
-	return ad_truth_accounts
-
-
 def dump_ads(ad_list, filename):
-	'''Dump all ads in the ad_list into a file.'''
+	'''Dump all ads in the ad_list into a file.
+
+	Args:
+		ad_list: A collection of ad objects (object or list or list of lists or
+		...)
+		filename: File where the string format of ads needs to be dumped.
+	'''
 	fd = open(filename, "w")
 	fd.write(adOps.get_ads_str(ad_list))
 	fd.flush()
@@ -95,7 +102,15 @@ def dump_ads(ad_list, filename):
 
 def float_range(start, end, step):
 	'''A function similar to the regular range function in Python that supports
-	floating point steps.'''
+	floating point steps.
+	
+	Args:
+		start: Floating-point number.
+		end: Floating-point number.
+
+	Returns:
+		step: Floating-point number.
+	'''
 	values = []
 
 	while start <= end:
@@ -106,7 +121,15 @@ def float_range(start, end, step):
 
 
 def create_ad(ad_dict):
-	'''Create an ad object from a dict.'''
+	'''Create an ad object from a dict.
+
+	Args:
+		ad_dict: Dictionary with keys and values that could be attributes and
+		values of an ad object.
+
+	Returns:
+		ad_obj: Ad object.
+	'''
 	ad_obj = AdObj(ad_dict["ad_urls"][0], ad_dict["texts"][0], ad_dict["accounts"][0][0])
 
 	for (account, count) in ad_dict["accounts"]:
@@ -119,7 +142,14 @@ def create_ad(ad_dict):
 
 
 def load_ads(filename):
-	'''Read filename containing ads into ad_list.'''
+	'''Read filename containing ads into ad_list.
+
+	Args:
+		filename: File containing list of ads dumped in their string format.
+
+	Returns:
+		ad_list: List of ad objects.
+	'''
 	ad_list = []
 	ad = {"accounts": [], "ad_urls": [], "urls": [], "texts": []}
 

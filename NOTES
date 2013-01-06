@@ -16,25 +16,28 @@ Xs are repeated across similar accounts even with no common Ds.
 
 
 GRAPHS
+Targeted ads Vs Trials
+TargetedX ads Vs Trials
+Random Vs Trials
 Precision & Recall
-	Fix trials based on knees of previous graph. Use max_trials if not possible.
 	foreach (alpha, beta, model) threshold on x-axis.
 	foreach (threshold, alpha, model) beta on x-axis.
 	foreach (threshold, beta, model) alpha on x-axis.
 
 
 TODOS
-Number of targeted ads on Y-axis, number of trials on X-axis.
-3. Prediction of all Ds above threshold and not just max_Ds: find precision and recall.
-	Though precision will decrease as recall increases, the knee should have a somewhat high precision and recall simultaneously.
-	Find alphas, betas, thresholds, models which give good precision and recall.
-4. Reasons for bad precision and recall of targeted Vs untargeted:
-	RULED OUT: Bad ad matching.
-	Wrong assumptions. Validate or invalidate assumptions. What are the assumptions? How?
-	Bad experimental setup. What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
-	Bad prediction and scoring. What makes a good scoring model for predictions?
-5. Area under precision and recall curve is the efficiency of a model.
-LOWPRI: Describe inputs and outputs along with the purpose for all functions.
+1. Order by recall, not precision. Recall is a monotonic function. Precision is not.
+2. Z Vs Trials graphs.
+3. Verify whether varying the subset (or order) of trials varies the knee. (Say, in identical accounts.)
+4. Cleanup page on disjoint accounts, including more useful graphs. One graph of all (1x, 2x) combinations and another of all (2x, 1x) combinations.
+5. Selenium parallel. New set of trials?
+6. Find the right alpha, beta, threshold for a model. Repeat for all models.
+7. Verify whether varying the number of trials -- mean(knees), median(knees), max(knees), max_trials -- impacts the results.
+
+LOWPRI TODOS
+2. What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
+3. What makes a good scoring model for predictions?
+4. Area under precision and recall curve is the efficiency of a model.
 
 
 DONE
@@ -48,4 +51,7 @@ DONE
 	Knee around 33 trials for ccloudauditor10-30.
 	Knees 3, 4 for ccloudauditor, ccloudauditor2.
 3. Common ads in identical accounts.
-4. Common ads in similar accounts.
+4. Common ads in disjoint accounts.
+
+LOWPRI DONE
+1. Describe args and returns along with the purpose for all functions.

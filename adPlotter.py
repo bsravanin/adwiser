@@ -1,16 +1,21 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 3rd January, 2013
+Date: 5th January, 2013
 Purpose: To draw different kinds of plots.
 '''
+
 
 import os, pylab
 from adGlobals import *
 
 
 def make_plot_dirs(dirname):
-	'''Create the required directories for plots.'''
+	'''Create the required directories for plots.
+
+	Args:
+		dirname: Root directory of results.
+	'''
 	targeted_dir = dirname + "/targeted"
 
 	if not os.path.exists(targeted_dir):
@@ -26,54 +31,37 @@ def make_plot_dirs(dirname):
 				os.makedirs(targeted_dir + dir2)
 
 
-def draw_plot_dict_keys(plot_dict, keys, plot_types, labels, targeted=False):
-	'''Plot values of plot_dict[x][key] for each key in keys, against each key
-	in plot_dict.'''
-	x_values = sorted(plot_dict.keys())
-
-	for i in range(0, len(keys)):
-		y_values = []
-
-		for x in x_values:
-			if targeted:
-				y_values.append(plot_dict[x]["targeted"][keys[i]])
-			else:
-				y_values.append(plot_dict[x][keys[i]])
-
-		pylab.plot(x_values, y_values, plot_types[i], label=labels[i])
-
-
-def draw_plot_dict_vs(plot_dict, x_key, y_key, plot_type, label, targeted=False):
-	'''Plot values of plot_dict[key][y_key] against xy_dict[z][x_key] for each
-	key in plot_dict.'''
-	x_values = []
-	y_values = []
-
-	for z in sorted(plot_dict.keys()):
-		if targeted:
-			x_values.append(xy_dict[z]["targeted"][x_key])
-			y_values.append(xy_dict[z]["targeted"][y_key])
-		else:
-			x_values.append(xy_dict[z][x_key])
-			y_values.append(xy_dict[z][y_key])
-
-	pylab.plot(x_values, y_values, plot_type, label=label)
-
-
 def save_plot(xlabel, ylabel, title, imgpath):
-	'''Save the plotted graphs so far as specified path.'''
+	'''Save the plotted graphs so far as specified path.
+	
+	Args:
+		xlabel: Label for X-axis.
+		ylabel: Label for Y-axis.
+		title: Title of the plot.
+		imgpath: Path where the plot(s) should be saved.
+	'''
 	pylab.xlabel(xlabel)
 	pylab.ylabel(ylabel)
-	pylab.axis([0, 1, 0, 1])
+	pylab.axis([0, 0.9, 0, 1])
 	pylab.title(title)
-	pylab.legend()
+	pylab.legend(loc="best", prop={'size':10})
 	pylab.savefig(imgpath)
 	pylab.clf()
 
 
 def draw_plots(results_dir, results_set, fixed_params, x_key, metrics):
 	'''Draw plots fixing the keys in fixed_params to their values, plotting all
-	possible values of metrics agains values of x_key.'''
+	possible values of metrics agains values of x_key.
+
+	Args:
+		results_dir: Root directory to save all plots in.
+		results_set: Multi-level dictionary of results with levels models,
+		alphas, betas, thresholds, targeted (optional), metrics.
+		fixed_params: Dictionary of fixed parameters and their values.
+		x_key: Parameter used for the X-axis.
+		metrics: An array of "precision", "recall", "accuracy", "tnr", etc. each
+		of which is optional.
+	'''
 	if x_key in fixed_params:
 		print "ERROR: Can't fix a parameter and plot a graph against it."
 		return
@@ -83,10 +71,11 @@ def draw_plots(results_dir, results_set, fixed_params, x_key, metrics):
 		return
 
 	x_values = []
-	y_values = {}
+	y_values = []
+	plot_id = 0
 	model = fixed_params["model"]
 	title = model + ". "
-	label = ""
+	labels = []
 	imgpath = model + "/" + x_key + "/"
 
 	if "targeted" in fixed_params:
@@ -101,6 +90,9 @@ def draw_plots(results_dir, results_set, fixed_params, x_key, metrics):
 		imgpath += "a" + str(alphas[0]) + "-"
 	elif x_key == "alpha":
 		alphas = x_values = ALPHAS
+	else:
+		title += "All Alphas. "
+		alphas = ALPHAS
 
 	if "beta" in fixed_params:
 		betas = [fixed_params["beta"]]
@@ -108,6 +100,9 @@ def draw_plots(results_dir, results_set, fixed_params, x_key, metrics):
 		imgpath += "b" + str(betas[0]) + "-"
 	elif x_key == "beta":
 		betas = x_values = BETAS
+	else:
+		title += "All Betas. "
+		betas = BETAS
 
 	if "threshold" in fixed_params:
 		thresholds = [fixed_params["threshold"]]
@@ -115,50 +110,89 @@ def draw_plots(results_dir, results_set, fixed_params, x_key, metrics):
 		imgpath += "t" + str(thresholds[0])
 	elif x_key == "threshold":
 		thresholds = x_values = THRESHOLDS
+	else:
+		title += "All Thresholds. "
+		thresholds = THRESHOLDS
 
-	for metric in metrics:
-		y_values[metric] = []
 
-	for alpha in alphas:
+	for a in range(0, len(alphas)):
+		alpha = alphas[a]
+
 		if "alpha" not in fixed_params and x_key != "alpha":
-			title += "All Alphas. "
-			label += "Alpha = " + str(alpha) + ". "
+			labels.append("Alpha=" + str(alpha) + ". ")
+			plot_id = a
 
-		for beta in betas:
+		for b in range(0, len(betas)):
+			beta = betas[b]
+
 			if "beta" not in fixed_params and x_key != "beta":
-				title += "All Betas. "
-				label += "Beta = " + str(beta) + ". "
+				labels.append("Beta=" + str(beta) + ". ")
+				plot_id = b
 
-			for threshold in thresholds:
+			for t in range(0, len(thresholds)):
+				threshold = thresholds[t]
+
 				if "threshold" not in fixed_params and x_key != "threshold":
-					title += "All Thresholds. "
-					label += "Threshold = " + str(threshold) + ". "
+					labels.append("Threshold=" + str(threshold) + ". ")
+					plot_id = t
+
+				if plot_id >= len(y_values):
+					y_values.append({})
+					for metric in metrics:
+						y_values[plot_id][metric] = []
 
 				if "targeted" in fixed_params:
 					for metric in metrics:
-						y_values[metric].append(results_set[model][alpha][beta][threshold]["targeted"][metric])
+						y_values[plot_id][metric].append(results_set[model][alpha][beta][threshold]["targeted"][metric])
 				else:
 					for metric in metrics:
-						y_values[metric].append(results_set[model][alpha][beta][threshold][metric])
+						y_values[plot_id][metric].append(results_set[model][alpha][beta][threshold][metric])
 
-	for metric in metrics:
-		pylab.plot(x_values, y_values[metric], "o-", label=metric)
+	if len(labels) == 0:
+		labels.append("")
+
+	plots_in_png = 0
+
+	for l in range(0, len(labels)):
+		for metric in metrics:
+			pylab.plot(x_values, y_values[l][metric], "o-", label=labels[l] + metric)
+			plots_in_png += 1
+
+			if plots_in_png % MAX_PLOTS_PER_PNG == 0:
+				save_plot(x_key, "", title, imgpath.strip("-") + \
+								str(plots_in_png/MAX_PLOTS_PER_PNG) + ".png")
+
 	save_plot(x_key, "", title, imgpath.strip("-") + ".png")
 
+	plots_in_png = 0
+
 	if "precision" in metrics and "recall" in metrics:
-		precision = []
-		recall = []
+		for l in range(0, len(labels)):
+			precision = []
+			recall = []
 
-		for i in sorted(enumerate(y_values["precision"]), key=lambda x:x[1]):
-			precision.append(y_values["precision"][i[0]])
-			recall.append(y_values["recall"][i[0]])
+			for i in sorted(enumerate(y_values[l]["precision"]), key=lambda x:x[1]):
+				precision.append(y_values[l]["precision"][i[0]])
+				recall.append(y_values[l]["recall"][i[0]])
 
-		pylab.plot(precision, recall, "o-")
+			pylab.plot(precision, recall, "o-", label=labels[l])
+			plots_in_png += 1
+
+			if plots_in_png % MAX_PLOTS_PER_PNG == 0:
+				save_plot("Precision", "Recall", title, imgpath.strip("-") + \
+						"-PvR" + str(plots_in_png/MAX_PLOTS_PER_PNG) + ".png")
+
 		save_plot("Precision", "Recall", title, imgpath.strip("-") + "-PvR.png")
 
 
 def draw_all_plots(results_dir, results_set):
-	'''Draw all possible plots for all models, alphas, betas and thresholds.'''
+	'''Draw all possible plots for all models, alphas, betas and thresholds.
+
+	Args:
+		results_dir: Root directory to save all plots in.
+		results_set: Multi-level dictionary of results with levels models,
+		alphas, betas, thresholds, targeted (optional), metrics.
+	'''
 	make_plot_dirs(results_dir)
 
 	for model in MODELS:
@@ -168,6 +202,11 @@ def draw_all_plots(results_dir, results_set):
 															"targeted": True}
 				draw_plots(results_dir, results_set, fixed_params, "threshold", \
 														["precision", "recall"])
+
+		for alpha in ALPHAS:
+			fixed_params = {"model": model, "alpha": alpha, "targeted": True}
+			draw_plots(results_dir, results_set, fixed_params, "threshold", \
+													["precision", "recall"])
 
 		for alpha in ALPHAS:
 			for threshold in THRESHOLDS:

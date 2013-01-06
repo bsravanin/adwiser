@@ -5,17 +5,29 @@ Date: 3rd January, 2013
 Purpose: To find whether ads are targeted or not, and on what if targeted.
 '''
 
+
 import adAnalyzer, adLib, adOps, adParser, adPlotter
 import os, pylab, sys
 
 
-def get_file_set(file_sets, trials):
-	'''Get a cumulative fileset from all user filesets for the specified number
-	of trials.'''
+def get_file_set(file_sets, trials, base_account=""):
+	'''Get a cumulative fileset from all user filesets except the base account
+	for the specified number of trials.
+
+	Args:
+		file_sets: Dictionary with keys as users and values as a list of sets,
+		where each set contains the HTML files in a trial directory.
+		trials: Number of trials whose HTML files are of interest.
+		base_account: The base account which will be ignored in getting the
+		file_set.
+
+	Returns:
+		file_set: Set of HTML files.
+	'''
 	file_set = set()
 
 	for user in file_sets:
-		if user == "ccloudauditor10":
+		if user == base_account:
 			continue
 
 		for i in range(0, trials):
@@ -29,20 +41,10 @@ def get_file_set(file_sets, trials):
 	return file_set
 
 
-def debug_logs(ad_list, dirname):
-	'''Save debug logs.'''
-	fd = open(dirname + "/ads.txt", "w")
-	fd.write(adOps.get_ads_str(ad_list))
-	fd.flush()
-	fd.close()
-
-
-# ad_truth_accounts = adAnalyzer.true_accounts_of_ads()
-
 '''
 file_sets = adParser.parse_conf("accounts.cf")
 base_file_set = file_sets["ccloudauditor10"][0]
-shadow_file_set = get_file_set(file_sets, 34)
+shadow_file_set = get_file_set(file_sets, 34, "ccloudauditor10")
 base_ads = adParser.parse_html_set(base_file_set)
 shadow_ads = adParser.parse_html_set(shadow_file_set)
 common_ads = adOps.intersection([base_ads, shadow_ads])

@@ -1,15 +1,23 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 29th December, 2012
+Date: 5th January, 2013
 Purpose: An object type for Ads and its related operations.
 '''
+
 
 import re, sys, urllib
 
 
 def is_url(word):
-	'''Check whether a string is a URL.'''
+	'''Check whether a string is a URL.
+
+	Args:
+		word: String which may be a URL.
+
+	Returns:
+		True or False
+	'''
 	if re.search(r'\.com|\.edu|\.gov|\.net|\.org', word, re.IGNORECASE) \
 		or re.search("\.[a-z]+[\.\/]", word, re.IGNORECASE):
 		return True
@@ -20,7 +28,14 @@ def is_url(word):
 def clean_url(url):
 	'''To strip URL of unnecessary data. Includes removing Google's ad metadata,
 	removing extra redirection nonsense, removing prepending protocol substring,
-	converting it into a readable lowercase format.'''
+	converting it into a readable lowercase format.
+
+	Args:
+		url: URL string
+
+	Returns:
+		URL string
+	'''
 	url = re.sub(r'.*\&adurl=', "", url)
 
 	if "/redir.php" in url:
@@ -38,7 +53,14 @@ def clean_url(url):
 
 def remove_nonascii(text):
 	'''To replace as Non-ASCII characters with space. Safer than
-	decode("ascii", "ignore").encode("ascii") which causes spacing issues.'''
+	decode("ascii", "ignore").encode("ascii") which causes spacing issues.
+
+	Args:
+		text: String
+
+	Returns:
+		ascii_text: String with only ASCII characters.
+	'''
 	ascii_text = ""
 
 	for i in text:
@@ -52,9 +74,23 @@ def remove_nonascii(text):
 
 class AdObj(dict):
 	'''An ad is an extended dictionary corresponding to equal/similar Google Ads
-	containing the displayed URLs, googlead URLs, texts.'''
+	containing the displayed URLs, googlead URLs, texts.
+	
+	Attributes:
+		accounts: Dictionary of accounts and their counts.
+		ad_urls: List of AdURLs.
+		displayed_urls: List of displayed URLs.
+		texts: List of displayed text.
+	'''
 
 	def __init__(self, url, text, username):
+		'''Initialize an ad object.
+
+		Args:
+			url: Raw AdURL.
+			text: Displayed ad content.
+			username: Account in which ad was displayed.
+		'''
 		self.accounts = {username:1}
 		self.ad_urls = [clean_url(url)]
 
@@ -74,6 +110,10 @@ class AdObj(dict):
 
 
 	def get_ad_str(self):
+		'''
+		Returns:
+			String representation of an ad object.
+		'''
 		ad_str = "=====AD STARTS====="
 		for account in self.accounts:
 			ad_str += "\nAccount: " + account + "\tCount: " + \
@@ -91,31 +131,38 @@ class AdObj(dict):
 
 
 	def compare(self, ad):
-		'''Compare this ad object with another for similarity.'''
+		'''Compare this ad object with another for similarity.
+
+		Args:
+			ad: Ad object.
+		'''
 		if len(set(self.ad_urls) & set(ad.ad_urls)) > 0 \
 			or len(set(self.texts) & set(ad.texts)) > 0:
 			return True
 
 		'''
-		or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
-		Jacard Index, Many words match, many long words match, many chars match,
-		etc. If there are common displayed_urls, AND ad_urls/text overlap.
-		'''
-
-		'''If some displayed URLs match and those URLs are descriptive.
+		If some displayed URLs match and those URLs are descriptive.
 		displayed = set(self.displayed_urls) & set(ad.displayed_urls)
 
 		if len(displayed) > 0:
 			for url in displayed:
 				if "/" in url:
 					return True
+
+		or len(set(self.displayed_urls) & set(ad.displayed_urls)) > 0 \
+		Jacard Index, Many words match, many long words match, many chars match,
+		etc. If there are common displayed_urls, AND ad_urls/text overlap.
 		'''
 
 		return False
 
 
 	def merge(self, ad):
-		'''Merge another ad object into this ad.'''
+		'''Merge another ad object into this ad.
+
+		Args:
+			ad: Ad object.
+		'''
 		for account in set(ad.accounts):
 			if account in self.accounts:
 				self.accounts[account] += ad.accounts[account]

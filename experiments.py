@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 2nd January, 2013
+Date: 5th January, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
@@ -12,17 +12,27 @@ import adLib, adOps, adParser
 import os, pylab, sys
 
 
-def make_dir(dirname):
-	if not os.path.isdir(dirname):
-		if os.path.exists(dirname):
-			print "ERROR:", dirname, "exists and is not a directory."
+def make_dir(dirpath):
+	'''Create directory to save experiment results.
+
+	Args:
+		dirpath: Path to directory.
+	'''
+	if not os.path.isdir(dirpath):
+		if os.path.exists(dirpath):
+			print "ERROR:", dirpath, "exists and is not a directory."
 			sys.exit(-1)
 		else:
-			os.makedirs(dirname)
+			os.makedirs(dirpath)
 
 
 def churn(adset_file, results_dir):
-	'''INTERFACE: Churn is the number of ads per number of trials.'''
+	'''INTERFACE: Churn is the number of ads per number of trials.
+
+	Args:
+		adset_file: Config file like "accounts.cf".
+		results_dir: Directory path to save experiment results.
+	'''
 	file_set_lists = adParser.parse_conf(adset_file)
 	churn_out = "User\tTrials\tAds\n"
 	make_dir(results_dir)
@@ -48,7 +58,16 @@ def churn(adset_file, results_dir):
 
 
 def save_churn_png(churn, min_uid, max_uid, knee, results_dir):
-	'''INTERNAL: Save the churn PNG with all rings and bells.'''
+	'''INTERNAL: Save the churn PNG with all rings and bells.
+	
+	Args:
+		churn: Multi-level dictionary of users, x/y/knee_x/knee_y, with values
+		for number of trials and corresponding number of ads.
+		min_uid: Integer between 10-30, form which user churn will be plotted.
+		max_uid: Integer between 10-30, till which user churn will be plotted.
+		knee: The "fictional" knee point for all users.
+		results_dir: Directory path to save experiment results.
+	'''
 	for user in churn:
 		uid = int(user.strip("ccloudauditor"))
 		if uid >= min_uid and uid <=max_uid:
@@ -70,7 +89,11 @@ def save_churn_png(churn, min_uid, max_uid, knee, results_dir):
 
 
 def plot_churn(results_dir):
-	'''INTERFACE: Plot the churn file as two PNGs.'''
+	'''INTERFACE: Plot the churn file as two PNGs.
+
+	Args:
+		results_dir: Directory path to save experiment results.
+	'''
 	fd = open(results_dir + "/churn.txt", "r")
 	churn = {}
 
@@ -125,7 +148,12 @@ def all_ads(adset_file):
 
 def unique_ads(ads_file, unique_ads_file):
 	'''INTERFACE: Extract all unique ads from a file containing a list of ads
-	(probably dumped before ad matching.'''
+	(probably dumped before ad matching).
+
+	Args:
+		ads_file: File containing the string format of a list of ads.
+		unique_ads_file: File where the unique ads seen in ads_file are written.
+	'''
 	ad_set = set()
 	NEW_AD = 0
 	ad = ""
@@ -157,9 +185,22 @@ awk 'BEGIN {tp=fp=fn=0} {for (i=1; i<=NF; i++) {if($i~/TP/) tp+=$i; if($i~/FP/) 
 
 
 def compare_accounts(adset_file, results_dir):
+	'''INTERFACE: Compare a "base" and "other" account to see which of the ads
+	in "base" are found in "other".
+
+	Args:
+		adset_file: Config file like "accounts.cf" specifying "base" and "other".
+		results_dir: Directory path to save experiment results.
+	'''
 	file_sets = adParser.parse_conf(adset_file)
-	base_file_sets = file_sets["base"]
-	other_file_sets = file_sets["other"]
+
+	if "base" in file_sets and "other" in file_sets:
+		base_file_sets = file_sets["base"]
+		other_file_sets = file_sets["other"]
+	else:
+		print "ERROR:", adset_file, "doesn't specify base and other accounts."
+		return
+
 	make_dir(results_dir)
 	result_str = "BaseTrial\tCount\tOtherTrials\tNotFound\n"
 
@@ -196,6 +237,12 @@ def compare_accounts(adset_file, results_dir):
 
 
 def plot_comparison(results_dir):
+	'''INTERFACE: Plot the results of comparing two accounts for common ads.
+
+	Args:
+		results_dir: Directory path containing the comparison results file and
+		also where the comparison plot should be saved.
+	'''
 	fd = open(results_dir + "/results.txt", "r")
 	bases = []
 	counts = []
