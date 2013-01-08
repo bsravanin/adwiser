@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 5th January, 2013
+Date: 7th January, 2013
 Purpose: A library of miscellaneous functions.
 '''
 
@@ -62,25 +62,30 @@ def true_accounts_of_ds(account_truth):
 
 
 def true_ds_of_ads(ad_truth_db):
-	'''Return a dictionary of Ad truth: for each ad, its Ds.
+	'''Return a dictionary of Ad truth: for each ad, whether it is a D/R/X and
+	if D, its set of Ds.
 
 	Args:
 		ad_truth_db: File with ad truth, e.g. "dbs/adTruth.db".
 
 	Returns:
-		ad_truth_ds: Dictionary with AdURL as keys and set of Ds as values.
+		ad_truth_ds: Multi-level dictionary with AdURLs as keys, and types
+		and set of Ds as values.
 	'''
 	fd = open(ad_truth_db, "r")
 	ad_truth_ds = {}
 
 	for line in fd.readlines():
-		if not line.startswith("#"):
-			words = line.strip().split("\t")
+		if line.startswith("#"):
+			continue
 
-			if len(words) > 1:
-				ad_truth_ds[words[0]] = frozenset(words[1:])
-			else:
-				ad_truth_ds[words[0]] = frozenset([])
+		words = line.strip().split("\t")
+		ad_url = words[0]
+		ad_type = words[1]
+		ad_truth_ds[ad_url] = {"type": ad_type, "d_s": frozenset()}
+
+		if ad_type == "D":
+			ad_truth_ds[ad_url]["d_s"] = frozenset(words[2:])
 
 	fd.close()
 	return ad_truth_ds

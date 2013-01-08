@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 5th January, 2013
+Date: 8th January, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
@@ -26,6 +26,27 @@ def make_dir(dirpath):
 			os.makedirs(dirpath)
 
 
+def ad_types_count(ad_list, ad_truth):
+	'''INTERNAL: Count the number of targeted and untargeted ads in ad_list
+	based on the ad_truth dict.
+
+	Args:
+		ad_list: List of ad objects.
+		ad_truth: Two-level dictionary with AdURLs as keys, types as D/R/X and
+		d_s as the (possibly empty) set of Ds.
+	
+	Return:
+		type_counts: Dictionary with T and U as keys and counts as values.
+	'''
+	type_counts = {"D": 0, "R": 0, "X": 0}
+
+	for ad in ad_list:
+		url = ad.ad_urls[0]
+		type_counts[ad_truth[url]["type"]] += 1
+
+	return type_counts
+
+
 def churn(adset_file, results_dir):
 	'''INTERFACE: Churn is the number of ads per number of trials.
 
@@ -34,17 +55,21 @@ def churn(adset_file, results_dir):
 		results_dir: Directory path to save experiment results.
 	'''
 	file_set_lists = adParser.parse_conf(adset_file)
-	churn_out = "User\tTrials\tAds\n"
+	ad_truth = adLib.true_ds_of_ads("dbs/adTruth.db")
+	churn_out = "User\tTrials\tAll\tD\tR\tX\n"
 	make_dir(results_dir)
 
 	for user in file_set_lists:
 		ad_list = []
-		churn_out += user + "\t0\t0\n"
+		churn_out += "\t".join([user, "0", "0", "0", "0", "0"]) + "\n"
 
 		for i in range(0, len(file_set_lists[user])):
 			tmp_list = adParser.parse_html_set(file_set_lists[user][i])
 			ad_list = adOps.union([ad_list, tmp_list])
-			churn_out += user + "\t" + str(i+1) + "\t" + str(len(ad_list)) + "\n"
+			type_counts = ad_types_count(ad_list, ad_truth)
+			churn_out += "\t".join([user, str(i+1), str(len(ad_list)), \
+							str(type_counts["D"]), str(type_counts["R"]), \
+							str(type_counts["X"])]) + "\n"
 		
 		fd = open(results_dir + "/" + user + ".txt", "w")
 		fd.write(adOps.get_ads_str(ad_list))
@@ -57,35 +82,135 @@ def churn(adset_file, results_dir):
 	fd.close()
 
 
-def save_churn_png(churn, min_uid, max_uid, knee, results_dir):
+def avg_churn(churn, min_uid, max_uid):
+	'''INTERNAL: Find the avg churn across users in a range.
+
+	Args:
+		churn: Multi-level dictionary of users, trials/total/d_s/r_s/x_s/knee_x/
+		knee_y, with values for number of trials and corresponding number of
+		ads, targeted ads, random ads and other targeted ads.
+		min_uid: Integer between 10-30, form which user churn will be plotted.
+		max_uid: Integer between 10-30, till which user churn will be plotted.
+
+	Return:
+		avgs: A dictionary of lists of avg total, d_s, r_s, x_s for each trial
+		across a range of users.
+	'''
+	avgs = {"trials": [], "total": [], "d_s": [], "r_s": [], "x_s": []}
+
+	for i in range(0, 100):
+		users = 0
+
+		for key in avgs:
+			avgs[key].append(0)
+
+		for user in churn:
+			if "avg" in user:
+				continue
+
+			uid = int(user.strip("ccloudauditor"))
+
+			if uid >= min_uid and uid <=max_uid:
+				if len(churn[user]["trials"]) <= i:
+					users = 0
+					break
+
+				users += 1
+
+				for key in avgs:
+					avgs[key][i] += churn[user][key][i]
+
+		if users == 0:
+			for key in avgs:
+				avgs[key].pop()
+			break
+		else:
+			for key in avgs:
+				avgs[key][i] /= users
+
+	return avgs
+
+
+def save_churn_png(results_dir, churn, min_uid, max_uid, knee):
 	'''INTERNAL: Save the churn PNG with all rings and bells.
 	
 	Args:
-		churn: Multi-level dictionary of users, x/y/knee_x/knee_y, with values
-		for number of trials and corresponding number of ads.
+		results_dir: Directory path to save experiment results.
+		churn: Multi-level dictionary of users, trials/total/d_s/r_s/x_s/knee_x/
+		knee_y, with values for number of trials and corresponding number of
+		ads, targeted ads, random ads and other targeted ads.
 		min_uid: Integer between 10-30, form which user churn will be plotted.
 		max_uid: Integer between 10-30, till which user churn will be plotted.
 		knee: The "fictional" knee point for all users.
+	'''
+	for y_key in ["total", "d_s", "r_s", "x_s"]:
+		for user in churn:
+			if "avg" in user:
+				continue
+
+			uid = int(user.strip("ccloudauditor"))
+
+			if uid >= min_uid and uid <=max_uid:
+				pylab.plot(churn[user]["trials"], churn[user][y_key], "-", \
+																	label=user)
+
+				if y_key == "total":
+					pylab.plot(churn[user]["knee_x"], churn[user]["knee_y"], \
+															"o", color="black")
+
+		pylab.xticks(range(0, 100, 10))
+		pylab.xlim([0, 100])
+		pylab.xlabel("Trials")
+		pylab.legend(loc="best", prop={'size':10})
+
+		if y_key == "total":
+			pylab.axvline(x=knee, color="black")
+			pylab.annotate("knee=" + str(knee), xy=(knee, 0))
+			pylab.ylabel("All Ads")
+			pylab.title("Number of All Ads Vs Number of Trials")
+		elif y_key == "d_s":
+			pylab.ylabel("TargetedDs")
+			pylab.title("Number of TargetedDs Vs Number of Trials")
+		elif y_key == "r_s":
+			pylab.ylabel("Rs")
+			pylab.title("Number of Rs Vs Number of Trials")
+		elif y_key == "x_s":
+			pylab.ylabel("TargetedXs")
+			pylab.title("Number of TargetedXs Vs Number of Trials")
+
+		pylab.savefig(results_dir + "/" + y_key + "-" + str(min_uid) + "-" + \
+														str(max_uid) + ".png")
+		pylab.clf()
+
+
+def save_avg_churn_png(results_dir, churn):
+	'''INTERNAL: Save the average churn PNGs.
+	
+	Args:
 		results_dir: Directory path to save experiment results.
+		churn: Multi-level dictionary of users, trials/total/d_s/r_s/x_s/knee_x/
+		knee_y, with values for number of trials and corresponding number of
+		ads, targeted ads, random ads and other targeted ads.
 	'''
 	for user in churn:
-		uid = int(user.strip("ccloudauditor"))
-		if uid >= min_uid and uid <=max_uid:
-			pylab.plot(churn[user]['x'], churn[user]['y'], "-", label=user)
-			pylab.plot(churn[user]['knee_x'], churn[user]['knee_y'], "o", \
-																color="black")
+		if "avg" not in user:
+			continue
 
-	pylab.xticks(range(0, 100, 10))
-	pylab.axvline(x=knee, color="black")
-	pylab.annotate("knee=" + str(knee), xy=(knee, 0))
-	pylab.xlim([0, 100])
-	pylab.xlabel("Trials")
-	pylab.ylabel("Ads")
-	pylab.title("Number of Ads Vs Number of Trials")
-	pylab.legend(loc="best", prop={'size':10})
-	pylab.savefig(results_dir + "/churn" + str(min_uid) + "-" + str(max_uid) + \
-																		".png")
-	pylab.clf()
+		for y_key in churn[user]:
+			if y_key == "trials":
+				continue
+
+			pylab.plot(churn[user]["trials"], churn[user][y_key], "-", \
+													label=user + ", " + y_key)
+
+		pylab.xticks(range(0, 100, 10))
+		pylab.xlim([0, 100])
+		pylab.xlabel("Trials")
+		pylab.ylabel("Number of Ads")
+		pylab.title("Avg. Number of Ads Vs Number of Trials")
+		pylab.legend(loc="best", prop={'size':10})
+		pylab.savefig(results_dir + "/" + user + ".png")
+		pylab.clf()
 
 
 def plot_churn(results_dir):
@@ -101,36 +226,42 @@ def plot_churn(results_dir):
 		if "Trials" in line:
 			continue
 
-		user, trials, count = line.strip().split()
+		user, trials, total, d_s, r_s, x_s = line.strip().split()
 		if user in churn:
-			churn[user]['x'].append(int(trials))
-			churn[user]['y'].append(int(count))
+			churn[user]["trials"].append(int(trials))
+			churn[user]["total"].append(int(total))
+			churn[user]["d_s"].append(int(d_s))
+			churn[user]["r_s"].append(int(r_s))
+			churn[user]["x_s"].append(int(x_s))
 		else:
-			churn[user] = {}
-			churn[user]['x'] = [int(trials)]
-			churn[user]['y'] = [int(count)]
+			churn[user] = {"trials": [int(trials)], "total": [int(total)], \
+						"d_s": [int(d_s)], "r_s": [int(r_s)], "x_s": [int(x_s)]}
 
 	fd.close()
 
 	ratio = 0.75
 	knees = []
 	for user in churn:
-		x_s = churn[user]['x']
-		y_s = churn[user]['y']
+		trials = churn[user]["trials"]
+		totals = churn[user]["total"]
 
-		for i in range(0, len(x_s)):
-			if y_s[i]/float(y_s[-1]) > ratio:
-				churn[user]['knee_x'] = i
-				churn[user]['knee_y'] = y_s[i]
+		for i in range(0, len(trials)):
+			if totals[i]/float(totals[-1]) > ratio:
+				churn[user]["knee_x"] = i
+				churn[user]["knee_y"] = totals[i]
 				knees.append(i)
 				break
 
 	knees = sorted(knees)
 	knee = knees[len(knees)/2 + 1]
+
+	churn["avg_10-20"] = avg_churn(churn, 10, 20)
+	churn["avg_21-30"] = avg_churn(churn, 21, 30)
+
 	make_dir(results_dir)
-	save_churn_png(churn, 10, 30, knee, results_dir)
-	save_churn_png(churn, 10, 20, knee, results_dir)
-	save_churn_png(churn, 21, 30, knee, results_dir)
+	save_churn_png(results_dir, churn, 10, 20, knee)
+	save_churn_png(results_dir, churn, 21, 30, knee)
+	save_avg_churn_png(results_dir, churn)
 
 
 def all_ads(adset_file):
@@ -299,7 +430,7 @@ def plot_comparison(results_dir):
 
 
 # churn(sys.argv[1], sys.argv[2])
-# plot_churn(sys.argv[1])
+plot_churn(sys.argv[1])
 # all_ads(sys.argv[1])
 # unique_ads(sys.argv[1], sys.argv[2] + "/uniques.txt")
 # compare_accounts(sys.argv[1], sys.argv[2])

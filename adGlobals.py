@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 5th January, 2013
+Date: 7th January, 2013
 Purpose: Global variables used throughout.
 '''
 
@@ -10,8 +10,8 @@ import adLib
 import os
 
 
-AD_TRUTH_DB = "dbs/adTruth.db"
 ACCOUNT_TRUTH_DB = "dbs/accountTruth.db"
+AD_TRUTH_DB = "dbs/adTruth.db"
 
 ACCOUNT_TRUTH = adLib.true_ds_of_accounts(ACCOUNT_TRUTH_DB)
 DS_TRUTH = adLib.true_accounts_of_ds(ACCOUNT_TRUTH)
