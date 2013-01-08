@@ -5,8 +5,10 @@ Why was an ad shown?
 
 
 ASSUMPTIONS
-Rs are rarely repeated across any accounts.
-
+If targeted on at least one email thread (found in ccloudauditor2* or not found in ccloudauditor1*): Ds
+Else if targeted on os, browser, gmail, location, career, cars, money, music, future event (black friday): Xs
+Else if rarely repeated with and across accounts: Rs
+Else: U
 
 KNOWLEDGE
 Some ads are targeted on Ds (emails).
@@ -26,7 +28,6 @@ Precision & Recall
 
 
 TODOS
-1. Order by recall, not precision. Recall is a monotonic function. Precision is not.
 2. Z Vs Trials graphs.
 3. Verify whether varying the subset (or order) of trials varies the knee. (Say, in identical accounts.)
 4. Cleanup page on disjoint accounts, including more useful graphs. One graph of all (1x, 2x) combinations and another of all (2x, 1x) combinations.
@@ -52,6 +53,8 @@ DONE
 	Knees 3, 4 for ccloudauditor, ccloudauditor2.
 3. Common ads in identical accounts.
 4. Common ads in disjoint accounts.
+5. Order by recall, not precision. Recall is a monotonic function. Precision is not.
+6. Full truth.
 
 LOWPRI DONE
 1. Describe args and returns along with the purpose for all functions.
