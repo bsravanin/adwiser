@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 5th January, 2013
+Date: 10th January, 2013
 Purpose: To try out different heuristics to predict which Ds the ads are being
 targeted on.
 '''
@@ -24,12 +24,18 @@ def true_ds_of_ad_list(ad_list):
 	true_ds_of_ads = []
 
 	for ad in ad_list:
+		true_type = ""
 		true_ds = set()
 
 		for url in set(ad.ad_urls) & set(AD_TRUTH):
-			true_ds |= AD_TRUTH[url]
+			if true_type == "":
+				true_type = AD_TRUTH[url]["type"]
+			elif true_type != AD_TRUTH[url]["type"]:
+				print "WARNING: Ad type mismatch."
 
-		true_ds_of_ads.append(true_ds)
+			true_ds |= AD_TRUTH[url]["d_s"]
+
+		true_ds_of_ads.append({"type": true_type, "d_s": frozenset(true_ds)})
 
 	return true_ds_of_ads
 
@@ -62,32 +68,51 @@ def calculate_scores(ad_d_dict):
 			scores[model][alpha] = {}
 
 		for beta in BETAS:
-			scores["p_agg"][alpha][beta] = \
-					(1*ad_d_dict["tps"]) + (alpha*ad_d_dict["fps"]) + \
-					(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
-			scores["p_exp"][alpha][beta] = \
-					(1**ad_d_dict["tps"]) * (alpha**ad_d_dict["fps"]) * \
-					(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
-			scores["p_r_agg"][alpha][beta] = \
-					(alpha*ad_d_dict["tps"]) + ((1-alpha)*ad_d_dict["fps"]) + \
-					(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
-			scores["p_r_exp"][alpha][beta] = \
-					(alpha**ad_d_dict["tps"]) * ((1-alpha)**ad_d_dict["fps"]) *\
-					(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
-			scores["wt_p_agg"][alpha][beta] = \
-					(1*ad_d_dict["wt_tps"]) + (alpha*ad_d_dict["wt_fps"]) + \
-					(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
-			scores["wt_p_exp"][alpha][beta] = \
-					(1**ad_d_dict["wt_tps"]) * (alpha**ad_d_dict["wt_fps"]) * \
-					(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
-			scores["wt_p_r_agg"][alpha][beta] = \
-					(alpha*ad_d_dict["wt_tps"]) + \
-					((1-alpha)*ad_d_dict["wt_fps"]) + \
-					(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
-			scores["wt_p_r_exp"][alpha][beta] = \
-					(alpha**ad_d_dict["wt_tps"]) * \
-					((1-alpha)**ad_d_dict["wt_fps"]) * \
-					(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
+			if "p_agg" in MODELS:
+				scores["p_agg"][alpha][beta] = \
+						(1*ad_d_dict["tps"]) + (alpha*ad_d_dict["fps"]) + \
+						(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
+
+			if "p_exp" in MODELS:
+				scores["p_exp"][alpha][beta] = \
+						(1**ad_d_dict["tps"]) * (alpha**ad_d_dict["fps"]) * \
+						(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
+
+			if "p_r_agg" in MODELS:
+				scores["p_r_agg"][alpha][beta] = \
+						(alpha*ad_d_dict["tps"]) + \
+						((1-alpha)*ad_d_dict["fps"]) + \
+						(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
+
+			if "p_r_exp" in MODELS:
+				scores["p_r_exp"][alpha][beta] = \
+						(alpha**ad_d_dict["tps"]) * \
+						((1-alpha)**ad_d_dict["fps"]) * \
+						(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
+
+			if "wt_p_agg" in MODELS:
+				scores["wt_p_agg"][alpha][beta] = \
+						(1*ad_d_dict["wt_tps"]) + \
+						(alpha*ad_d_dict["wt_fps"]) + \
+						(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
+
+			if "wt_p_exp" in MODELS:
+				scores["wt_p_exp"][alpha][beta] = \
+						(1**ad_d_dict["wt_tps"]) * \
+						(alpha**ad_d_dict["wt_fps"]) * \
+						(beta**ad_d_dict["fns"]) * (1**ad_d_dict["tns"])
+
+			if "wt_p_r_agg" in MODELS:
+				scores["wt_p_r_agg"][alpha][beta] = \
+						(alpha*ad_d_dict["wt_tps"]) + \
+						((1-alpha)*ad_d_dict["wt_fps"]) + \
+						(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
+
+			if "wt_p_r_exp" in MODELS:
+				scores["wt_p_r_exp"][alpha][beta] = \
+						(alpha**ad_d_dict["wt_tps"]) * \
+						((1-alpha)**ad_d_dict["wt_fps"]) * \
+						(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
 
 	return scores
 
@@ -258,18 +283,18 @@ def verify_pred(predicted_ds_of_ad, true_ds_of_ad, threshold):
 	'''
 
 	result = {}
-	result["tps"] = len(prediction & true_ds_of_ad)
-	result["fps"] = len(prediction & (all_ds - true_ds_of_ad))
-	result["fns"] = len((all_ds - prediction) & true_ds_of_ad)
-	result["tns"] = len((all_ds - prediction) & (all_ds - true_ds_of_ad))
+	result["tps"] = len(prediction & true_ds_of_ad["d_s"])
+	result["fps"] = len(prediction & (all_ds - true_ds_of_ad["d_s"]))
+	result["fns"] = len((all_ds - prediction) & true_ds_of_ad["d_s"])
+	result["tns"] = len((all_ds - prediction) & (all_ds - true_ds_of_ad["d_s"]))
 
-	if len(prediction) > 0 and len(true_ds_of_ad) > 0:
+	if len(prediction) > 0 and true_ds_of_ad["type"] == "D":
 		result["targeted"] = "tps"
-	elif len(prediction) > 0 and len(true_ds_of_ad) == 0:
+	elif len(prediction) > 0 and true_ds_of_ad["type"] != "D":
 		result["targeted"] = "fps"
-	elif len(prediction) == 0 and len(true_ds_of_ad) == 0:
+	elif len(prediction) == 0 and true_ds_of_ad["type"] != "D":
 		result["targeted"] = "tns"
-	elif len(prediction) == 0 and len(true_ds_of_ad) > 0:
+	elif len(prediction) == 0 and true_ds_of_ad["type"] == "D":
 		result["targeted"] = "fns"
 
 	return result

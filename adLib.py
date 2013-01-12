@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 7th January, 2013
+Date: 9th January, 2013
 Purpose: A library of miscellaneous functions.
 '''
 
@@ -89,6 +89,27 @@ def true_ds_of_ads(ad_truth_db):
 
 	fd.close()
 	return ad_truth_ds
+
+
+def ad_types_count(ad_list, ad_truth):
+	'''Count the number of targeted and untargeted ads in ad_list based on the
+	ad_truth dict.
+
+	Args:
+		ad_list: List of ad objects.
+		ad_truth: Two-level dictionary with AdURLs as keys, types as D/R/X and
+		d_s as the (possibly empty) set of Ds.
+	
+	Return:
+		type_counts: Dictionary with T and U as keys and counts as values.
+	'''
+	type_counts = {"D": 0, "R": 0, "X": 0}
+
+	for ad in ad_list:
+		url = ad.ad_urls[0]
+		type_counts[ad_truth[url]["type"]] += 1
+
+	return type_counts
 
 
 def dump_ads(ad_list, filename):

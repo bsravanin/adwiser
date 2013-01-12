@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 8th January, 2013
+Date: 9th January, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
@@ -9,7 +9,7 @@ functions.
 '''
 
 import adLib, adOps, adParser
-import os, pylab, sys
+import os, pylab, re, sys
 
 
 def make_dir(dirpath):
@@ -26,25 +26,10 @@ def make_dir(dirpath):
 			os.makedirs(dirpath)
 
 
-def ad_types_count(ad_list, ad_truth):
-	'''INTERNAL: Count the number of targeted and untargeted ads in ad_list
-	based on the ad_truth dict.
-
-	Args:
-		ad_list: List of ad objects.
-		ad_truth: Two-level dictionary with AdURLs as keys, types as D/R/X and
-		d_s as the (possibly empty) set of Ds.
-	
-	Return:
-		type_counts: Dictionary with T and U as keys and counts as values.
-	'''
-	type_counts = {"D": 0, "R": 0, "X": 0}
-
-	for ad in ad_list:
-		url = ad.ad_urls[0]
-		type_counts[ad_truth[url]["type"]] += 1
-
-	return type_counts
+def types_count_str(types_count):
+	'''Return string form of the types_count dictionary, which has D, R and X
+	as keys and their respective counts as values.'''
+	return "\t".join([str(types_count["D"]), str(types_count["R"]), str(types_count["X"])])
 
 
 def churn(adset_file, results_dir):
@@ -64,12 +49,12 @@ def churn(adset_file, results_dir):
 		churn_out += "\t".join([user, "0", "0", "0", "0", "0"]) + "\n"
 
 		for i in range(0, len(file_set_lists[user])):
+		# for i in range(len(file_set_lists[user])-1, -1, -1):
 			tmp_list = adParser.parse_html_set(file_set_lists[user][i])
 			ad_list = adOps.union([ad_list, tmp_list])
-			type_counts = ad_types_count(ad_list, ad_truth)
+			type_counts = adLib.ad_types_count(ad_list, ad_truth)
 			churn_out += "\t".join([user, str(i+1), str(len(ad_list)), \
-							str(type_counts["D"]), str(type_counts["R"]), \
-							str(type_counts["X"])]) + "\n"
+										types_count_str(type_counts)]) + "\n"
 		
 		fd = open(results_dir + "/" + user + ".txt", "w")
 		fd.write(adOps.get_ads_str(ad_list))
@@ -253,7 +238,11 @@ def plot_churn(results_dir):
 				break
 
 	knees = sorted(knees)
-	knee = knees[len(knees)/2 + 1]
+	if len(knees) > 2:
+		knee = knees[len(knees)/2 + 1]
+	else:
+		knee = knees[len(knees)/2]
+	print "Knee:", knee
 
 	churn["avg_10-20"] = avg_churn(churn, 10, 20)
 	churn["avg_21-30"] = avg_churn(churn, 21, 30)
@@ -324,6 +313,7 @@ def compare_accounts(adset_file, results_dir):
 		results_dir: Directory path to save experiment results.
 	'''
 	file_sets = adParser.parse_conf(adset_file)
+	ad_truth = adLib.true_ds_of_ads("dbs/adTruth.db")
 
 	if "base" in file_sets and "other" in file_sets:
 		base_file_sets = file_sets["base"]
@@ -333,33 +323,45 @@ def compare_accounts(adset_file, results_dir):
 		return
 
 	make_dir(results_dir)
-	result_str = "BaseTrial\tCount\tOtherTrials\tNotFound\n"
+	result_str = "Base\tCount\tDs\tRs\tXs\tOther\tNF\tDs\tRs\tXs\tCommon\tDs\tRs\tXs\n"
 
 	for b in range(0, len(base_file_sets)):
-		print "BaseTrial", b
+		# print "BaseTrial", b
 		base_ads = adParser.parse_html_set(base_file_sets[b])
-		adLib.dump_ads(base_ads, results_dir + "/base" + str(b) + ".txt")
+		# adLib.dump_ads(base_ads, results_dir + "/base" + str(b) + ".txt")
 		base_count = len(base_ads)
+		base_tc = adLib.ad_types_count(base_ads, ad_truth)
 		other_ads = []
 		prev_diff = base_count
+		printed = False
 
 		for o in range(0, len(other_file_sets)):
 			other_ads = adOps.union([other_ads, \
 								adParser.parse_html_set(other_file_sets[o])])
 			base_ads = adOps.difference(base_ads, other_ads)
 			diff = len(base_ads)
+			diff_tc = adLib.ad_types_count(base_ads, ad_truth)
 
-			if diff != prev_diff:
-				result_str += str(b) + "\t" + str(base_count) + "\t" + str(o) \
-													+ "\t" + str(diff) + "\n"
+			common = base_count - diff
+			common_tc = {}
+			for key in base_tc:
+				common_tc[key] = base_tc[key] - diff_tc[key]
+
+			if (not printed and o == len(other_file_sets)-1) or diff != prev_diff:
+				printed = True
+				result_str += "\t".join([str(b), str(base_count), \
+								types_count_str(base_tc), str(o), str(diff), \
+								types_count_str(diff_tc), str(common), \
+								types_count_str(common_tc)]) + "\n"
+			
 			prev_diff = diff
 
 			if diff == 0:
 				break
 
-		adLib.dump_ads(base_ads, results_dir + "/diff" + str(b) + ".txt")
+		# adLib.dump_ads(base_ads, results_dir + "/diff" + str(b) + ".txt")
 
-	adLib.dump_ads(other_ads, results_dir + "/other.txt")
+	# adLib.dump_ads(other_ads, results_dir + "/other.txt")
 
 	fd = open(results_dir + "/results.txt", "w")
 	fd.write(result_str)
@@ -429,9 +431,102 @@ def plot_comparison(results_dir):
 	print results_dir, sum(counts)/float(len(counts)), sum(misses)/float(len(misses))
 
 
-# churn(sys.argv[1], sys.argv[2])
-plot_churn(sys.argv[1])
+def analyze_comparison(results_file):
+	'''INTERFACE: To compute various averages of a comparison.
+
+	Args:
+		results_file: File like the "results.txt" of compare_accounts.
+	'''
+	fd = open(results_file, "r")
+	results = []
+
+	for line in fd.readlines():
+		if "Base" in line:
+			continue
+
+		words = line.strip().split()
+		ints = []
+
+		for word in words:
+			ints.append(int(word))
+
+		base = ints.pop(0)
+		if base == len(results):
+			results.append(ints)
+		else:
+			results[base] = ints
+
+	fd.close()
+
+	avgs = []
+	for i in range(0, len(results[0])):
+		avgs.append(0.0)
+
+		for j in range(0, len(results)):
+			avgs[i] += results[j][i]
+
+		avgs[i] /= len(results)
+
+	result = os.path.basename(results_file).strip(".txt") + "\t" + \
+				str(len(results)) + "\t" + "\t".join([str(x) for x in avgs])
+	print result
+
+
+def analyze_comparisons(comparisons_file):
+	'''INTERFACE: To compute various averages across comparisons.
+
+	Args:
+		comparisons_file: File with various analyze_comparison outputs.
+	'''
+	fd = open(comparisons_file, "r")
+	similar_9_1 = []
+	similar_1_9 = []
+	similar_1_1 = []
+
+	for line in fd.readlines():
+		words = line.strip().split()
+
+		if re.match(r'similar_1|similar_20', words[0]):
+			similar_9_1.append(words[1:])
+		elif re.match(r'similar_2\d-1|similar_30-20', words[0]):
+			similar_1_9.append(words[1:])
+		elif re.match(r'similar_[23]', words[0]):
+			similar_1_1.append(words[1:])
+	fd.close()
+
+	for similar in [similar_9_1, similar_1_9, similar_1_1]:
+		print len(similar)
+		avg = []
+		maxi = []
+		mini = []
+
+		for i in range(0, len(similar[0])):
+			avg.append(0.0)
+			maxi.append(0.0)
+			mini.append(1000.0)
+
+			for s in similar:
+				f = float(s[i])
+				avg[i] += f
+
+				if maxi[i] <= f:
+					maxi[i] = f
+
+				if mini[i] >= f:
+					mini[i] = f
+
+			avg[i] /= len(similar)
+
+		print "Avg", "\t".join([str(x) for x in avg])
+		print "Max", "\t".join([str(x) for x in maxi])
+		print "Min", "\t".join([str(x) for x in mini])
+		print
+
+
+# plot_churn(sys.argv[2])
 # all_ads(sys.argv[1])
 # unique_ads(sys.argv[1], sys.argv[2] + "/uniques.txt")
 # compare_accounts(sys.argv[1], sys.argv[2])
 # plot_comparison(sys.argv[1])
+# analyze_comparison(sys.argv[1])
+# analyze_comparisons(sys.argv[1])
