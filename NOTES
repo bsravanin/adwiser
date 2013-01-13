@@ -52,6 +52,8 @@ DONE
 		foreach (alpha, beta, model) threshold on x-axis.
 		foreach (threshold, alpha, model) beta on x-axis.
 		foreach (threshold, beta, model) alpha on x-axis.
+12. New disjoint accounts, threads, trials, truth, comparisons.
+13. New models. p_exp equivalent to r_exp.
 
 LOWPRI DONE
 1. Describe args and returns along with the purpose for all functions.
