@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 11th January, 2013
+Date: 15th January, 2013
 Purpose: To draw different kinds of plots.
 '''
 
@@ -59,6 +59,28 @@ def save_plot(xlabel, ylabel, title, imgpath, plot_type="default"):
 	pylab.legend(loc="best", prop={'size':10})
 	pylab.savefig(imgpath)
 	pylab.clf()
+
+
+def area(x_values, y_values):
+	'''Find the area common to both curves related to the metrics, by splitting
+	it into trapezoids.
+
+	Args:
+		x_values: List of x-coordinates.
+		y_values: Dictionary of lists of y-coordinates.
+
+	Return:
+		Area: A non-negative floating point number.
+	'''
+	area = 0
+
+	for i in range(1, len(x_values)):
+		h = x_values[i] - x_values[i-1]
+		a = min([y_values[metric][i-1] for metric in y_values])
+		b = min([y_values[metric][i] for metric in y_values])
+		area += (0.5 * h * (a+b))
+
+	return area
 
 
 def draw_single_plots(results_dir, results_set, plot_params):
@@ -141,6 +163,12 @@ def draw_single_plots(results_dir, results_set, plot_params):
 				else:
 					for metric in metrics:
 						y_values[metric].append(results_set[model][alpha][beta][threshold][metric])
+
+	if "precision" in metrics and "recall" in metrics:
+		print title, area(x_values, y_values)
+
+	if not plot_params["plot"]:
+		return
 
 	for metric in metrics:
 		pylab.plot(x_values, y_values[metric], "-", label=metric)
@@ -330,11 +358,11 @@ def draw_all_plots(results_dir, results_set):
 	make_plot_dirs(results_dir)
 
 	for model in MODELS:
-		'''
 		for alpha in ALPHAS:
 			for beta in BETAS:
 				plot_params = {"model": model, "x_key": "threshold", \
 								"alpha": alpha, "beta": beta, "targeted": True,\
+								"plot": False, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
 														
@@ -343,7 +371,7 @@ def draw_all_plots(results_dir, results_set):
 			for threshold in THRESHOLDS:
 				plot_params = {"model": model, "x_key": "beta", \
 								"alpha": alpha,	"threshold": threshold, \
-								"targeted": True, \
+								"targeted": True, "plot": False, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
 
@@ -351,6 +379,7 @@ def draw_all_plots(results_dir, results_set):
 			for threshold in THRESHOLDS:
 				plot_params = {"model": model, "x_key": "alpha", "beta": beta, \
 								"threshold": threshold, "targeted": True, \
+								"plot": False, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
 		'''
@@ -389,3 +418,4 @@ def draw_all_plots(results_dir, results_set):
 							"threshold": threshold, "targeted": True, \
 							"metrics": ["precision", "recall"]}
 			draw_multi_plots(results_dir, results_set, plot_params)
+		'''

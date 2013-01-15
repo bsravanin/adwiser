@@ -523,6 +523,17 @@ def analyze_comparisons(comparisons_file):
 		print
 
 
+def write_conf(base, other):
+	'''Write a conf file for comparing accounts.'''
+	fd = open("tests/test.cf", "w")
+	conf_str = "base\tlogs/ccloudauditor" + str(base) + "\n" + \
+				"other\tlogs/ccloudauditor" + str(other) + "\n"
+	fd.write(conf_str)
+	fd.flush()
+	fd.close()
+
+
+# churn(sys.argv[1], sys.argv[2])
 # plot_churn(sys.argv[2])
 # all_ads(sys.argv[1])
 # unique_ads(sys.argv[1], sys.argv[2] + "/uniques.txt")

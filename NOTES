@@ -21,13 +21,11 @@ GRAPHS
 
 TODOS
 5. Selenium parallel. New set of trials?
-6. Find the right alpha, beta, threshold for a model. Repeat for all models. (All alpha-beta combinations for a-b-c-d.)
 7. Verify whether varying the number of trials -- mean(knees), median(knees), max(knees), max_trials -- impacts the results.
 
 LOWPRI TODOS
 2. What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
 3. What makes a good scoring model for predictions?
-4. Area under precision and recall curve is the efficiency of a model.
 
 
 DONE
@@ -53,7 +51,10 @@ DONE
 		foreach (threshold, alpha, model) beta on x-axis.
 		foreach (threshold, beta, model) alpha on x-axis.
 12. New disjoint accounts, threads, trials, truth, comparisons.
-13. New models. p_exp equivalent to r_exp.
+13. Models with all combinations of (alpha, beta), (a, b, c, d). All models give identical results.
+14. Aggregation models. Normalizing scores a big problem, and could be the cause of bad results.
+15. Aggregation and exponentiation models using both penalties and both rewards.
 
 LOWPRI DONE
 1. Describe args and returns along with the purpose for all functions.
+2. Area under precision and recall curve is the efficiency of a model.

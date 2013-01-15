@@ -3,7 +3,6 @@
 Name: Sravan Bhamidipati
 Date: 5th January, 2013
 Purpose: Automate Gmail navigation using Selenium.
-TODO: How to tell whether a page, including advertisements, loaded fully?
 '''
 
 
@@ -141,7 +140,11 @@ def navigate(save_dir):
 	i = 2
 	while True:
 		try:
-			if "ccloudauditor/" in save_dir or "ccloudauditor2/" in save_dir
+			if "ccloudauditor/" in save_dir \
+				or "ccloudauditor2/" in save_dir \
+				or "ccloudauditor6/" in save_dir \
+				or "ccloudauditor7/" in save_dir \
+				or "ccloudauditor8/" in save_dir \
 				or "ccloudauditor13/" in save_dir:
 				browser.find_element_by_xpath("//div[@aria-label='Older']").click()
 			else:

@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 13th January, 2013
+Date: 14th January, 2013
 Purpose: To try out different heuristics to predict which Ds the ads are being
 targeted on.
 '''
@@ -43,18 +43,22 @@ def true_ds_of_ad_list(ad_list):
 def calculate_scores(ad_d_dict):
 	'''Compute confidence scores for an ad for different values of alpha and
 	beta when using:
-		p_agg = (1*tps) + (alpha*fps) + (1*tns) + (beta*fns)
+		p_agg = - (alpha*fps) - (beta*fns)
 		p_exp = (alpha**fps) * (beta**fns)
-		p_harmonic = (2 + alpha + beta) / [(1/tps) + (alpha/fps) + (1/tns) + (beta/fns)]
-		p_r_agg = (alpha*tps) + ((1-alpha)*fps) + (beta*tns) + ((1-beta)*fns)
-		p_r_exp = (alpha**tps) * ((1-alpha)**fps) * (beta**tns) * ((1-beta)**fns)
-		p_r_harmonic = 2 / [(alpha/tps) + ((1-alpha)/fps) + (beta/tns) + ((1-beta)/fns)]
+		p_r_agg = (alpha*tps) - ((1-alpha)*fps) + (beta*tns) - ((1-beta)*fns)
+		p_r_agg2 = (alpha*tps) - ((1-beta)*fps) + (beta*tns) - ((1-alpha)*fns)
+		p_r_exp = ((1-alpha)**fps) * ((1-beta)**fns) / ((alpha**tps) * (beta**tns))
+		p_r_exp2 = ((1-beta)**fps) * ((1-alpha)**fns) / ((alpha**tps) * (beta**tns))
+		p1_r1_agg = (alpha*tps) - (beta*fps)
 		p1_r1_exp = (alpha**tps) * (beta**fps)
+		p1_r2_agg = (alpha*tps) - (beta*fns)
 		p1_r2_exp = (alpha**tps) * (beta**fns)
+		p2_r1_agg = (alpha*tns) - (beta*fps)
 		p2_r1_exp = (beta**fps) * (alpha**tns)
+		p2_r2_agg = (alpha*tns) - (beta*fns)
 		p2_r2_exp = (alpha**tns) * (beta**fns)
-		r_agg = 1 / ((alpha*tps) + (1*fps) + (beta*tns) + (1*fns))
-		r_exp = 1 / ((alpha**tps) * (1**fps) * (beta**tns) * (1**fns))
+		r_agg = (alpha*tps) + (beta*tns)
+		r_exp = 1 / ((alpha**tps) * (beta**tns))
 
 	Args:
 		ad_d_dict: Dictionary of a M(Ad) and M(D) combinations and counts.
@@ -75,25 +79,44 @@ def calculate_scores(ad_d_dict):
 
 		for beta in BETAS:
 			if "p_agg" in MODELS:
-				scores["p_agg"][alpha][beta] = \
-						(1*ad_d_dict["tps"]) + (alpha*ad_d_dict["fps"]) + \
-						(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
+				scores["p_agg"][alpha][beta] = -(alpha*ad_d_dict["fps"]) - \
+													(beta*ad_d_dict["fns"])
 
 			if "p_exp" in MODELS:
 				scores["p_exp"][alpha][beta] = \
 						(alpha**ad_d_dict["fps"]) * (beta**ad_d_dict["fns"])
 
 			if "p_r_agg" in MODELS:
-				scores["p_r_agg"][alpha][beta] = \
-						(alpha*ad_d_dict["tps"]) + \
-						((1-alpha)*ad_d_dict["fps"]) + \
-						(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
+				scores["p_r_agg"][alpha][beta] = (alpha*ad_d_dict["tps"]) - \
+						((1-alpha)*ad_d_dict["fps"]) + (beta*ad_d_dict["tns"]) \
+						- ((1-beta)*ad_d_dict["fns"])
+
+			if "p_r_agg2" in MODELS:
+				scores["p_r_agg2"][alpha][beta] = (alpha*ad_d_dict["tps"]) - \
+						((1-beta)*ad_d_dict["fps"]) + (beta*ad_d_dict["tns"]) \
+						- ((1-alpha)*ad_d_dict["fns"])
 
 			if "p_r_exp" in MODELS:
-				scores["p_r_exp"][alpha][beta] = \
-						(alpha**ad_d_dict["tps"]) * \
-						((1-alpha)**ad_d_dict["fps"]) * \
-						(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
+				scores["p_r_exp"][alpha][beta] = (alpha**ad_d_dict["tps"]) * \
+														(beta**ad_d_dict["tns"])
+				if scores["p_r_exp"][alpha][beta] > 0:
+					scores["p_r_exp"][alpha][beta] = \
+									((1-alpha)**ad_d_dict["fps"]) *	\
+										((1-beta)**ad_d_dict["fns"]) / \
+												scores["p_r_exp"][alpha][beta]
+
+			if "p_r_exp2" in MODELS:
+				scores["p_r_exp2"][alpha][beta] = (alpha**ad_d_dict["tps"]) * \
+														(beta**ad_d_dict["tns"])
+				if scores["p_r_exp2"][alpha][beta] > 0:
+					scores["p_r_exp2"][alpha][beta] = \
+									((1-beta)**ad_d_dict["fps"]) *	\
+										((1-alpha)**ad_d_dict["fns"]) / \
+												scores["p_r_exp2"][alpha][beta]
+
+			if "p1_r1_agg" in MODELS:
+				scores["p1_r1_agg"][alpha][beta] = (alpha*ad_d_dict["tps"]) - \
+														(beta*ad_d_dict["fps"])
 
 			if "p1_r1_exp" in MODELS:
 				scores["p1_r1_exp"][alpha][beta] = alpha**ad_d_dict["tps"]
@@ -101,17 +124,29 @@ def calculate_scores(ad_d_dict):
 					scores["p1_r1_exp"][alpha][beta] = beta**ad_d_dict["fps"] /\
 												scores["p1_r1_exp"][alpha][beta]
 
+			if "p1_r2_agg" in MODELS:
+				scores["p1_r2_agg"][alpha][beta] = (alpha*ad_d_dict["tps"]) - \
+														(beta*ad_d_dict["fns"])
+
 			if "p1_r2_exp" in MODELS:
 				scores["p1_r2_exp"][alpha][beta] = alpha**ad_d_dict["tns"]
 				if scores["p1_r2_exp"][alpha][beta] > 0:
 					scores["p1_r2_exp"][alpha][beta] = beta**ad_d_dict["fps"] /\
 												scores["p1_r2_exp"][alpha][beta]
 
+			if "p2_r1_agg" in MODELS:
+				scores["p2_r1_agg"][alpha][beta] = (alpha*ad_d_dict["tns"]) - \
+														(beta*ad_d_dict["fps"])
+
 			if "p2_r1_exp" in MODELS:
 				scores["p2_r1_exp"][alpha][beta] = alpha**ad_d_dict["tps"]
 				if scores["p2_r1_exp"][alpha][beta] > 0:
 					scores["p2_r1_exp"][alpha][beta] = beta**ad_d_dict["fns"] /\
 												scores["p2_r1_exp"][alpha][beta]
+
+			if "p2_r2_agg" in MODELS:
+				scores["p2_r2_agg"][alpha][beta] = (alpha*ad_d_dict["tns"]) - \
+														(beta*ad_d_dict["fns"])
 
 			if "p2_r2_exp" in MODELS:
 				scores["p2_r2_exp"][alpha][beta] = alpha**ad_d_dict["tns"]
@@ -120,12 +155,8 @@ def calculate_scores(ad_d_dict):
 												scores["p2_r2_exp"][alpha][beta]
 
 			if "r_agg" in MODELS:
-				scores["r_agg"][alpha][beta] = \
-						((alpha*ad_d_dict["tps"]) + (1*ad_d_dict["fps"]) + \
-						(1*ad_d_dict["fns"]) + (beta*ad_d_dict["tns"]))
-				if scores["r_agg"][alpha][beta] > 0:
-					scores["r_agg"][alpha][beta] = \
-												1 / scores["r_agg"][alpha][beta]
+				scores["r_agg"][alpha][beta] = (alpha*ad_d_dict["tps"]) + \
+														(beta*ad_d_dict["tns"])
 
 			if "r_exp" in MODELS:
 				scores["r_exp"][alpha][beta] = \
@@ -135,10 +166,8 @@ def calculate_scores(ad_d_dict):
 												1 / scores["r_exp"][alpha][beta]
 
 			if "wt_p_agg" in MODELS:
-				scores["wt_p_agg"][alpha][beta] = \
-						(1*ad_d_dict["wt_tps"]) + \
-						(alpha*ad_d_dict["wt_fps"]) + \
-						(beta*ad_d_dict["fns"]) + (1*ad_d_dict["tns"])
+				scores["wt_p_agg"][alpha][beta] = -(alpha*ad_d_dict["wt_fps"]) - \
+													(beta*ad_d_dict["fns"])
 
 			if "wt_p_exp" in MODELS:
 				scores["wt_p_exp"][alpha][beta] = \
@@ -146,15 +175,37 @@ def calculate_scores(ad_d_dict):
 
 			if "wt_p_r_agg" in MODELS:
 				scores["wt_p_r_agg"][alpha][beta] = \
-						(alpha*ad_d_dict["wt_tps"]) + \
-						((1-alpha)*ad_d_dict["wt_fps"]) + \
-						(beta*ad_d_dict["tns"]) + ((1-beta)*ad_d_dict["fns"])
+					(alpha*ad_d_dict["wt_tps"]) - \
+					((1-alpha)*ad_d_dict["wt_fps"]) + (beta*ad_d_dict["tns"]) -\
+					((1-beta)*ad_d_dict["fns"])
+
+			if "wt_p_r_agg2" in MODELS:
+				scores["wt_p_r_agg2"][alpha][beta] = \
+					(alpha*ad_d_dict["wt_tps"]) - \
+					((1-beta)*ad_d_dict["wt_fps"]) + (beta*ad_d_dict["tns"]) - \
+					((1-alpha)*ad_d_dict["fns"])
 
 			if "wt_p_r_exp" in MODELS:
 				scores["wt_p_r_exp"][alpha][beta] = \
-						(alpha**ad_d_dict["wt_tps"]) * \
-						((1-alpha)**ad_d_dict["wt_fps"]) * \
-						(beta**ad_d_dict["tns"]) * ((1-beta)**ad_d_dict["fns"])
+						(alpha**ad_d_dict["wt_tps"]) * (beta**ad_d_dict["tns"])
+				if scores["wt_p_r_exp"][alpha][beta] > 0:
+					scores["wt_p_r_exp"][alpha][beta] = \
+									((1-alpha)**ad_d_dict["wt_fps"]) *	\
+										((1-beta)**ad_d_dict["fns"]) / \
+											scores["wt_p_r_exp"][alpha][beta]
+
+			if "wt_p_r_exp2" in MODELS:
+				scores["wt_p_r_exp2"][alpha][beta] = \
+						(alpha**ad_d_dict["wt_tps"]) * (beta**ad_d_dict["tns"])
+				if scores["wt_p_r_exp2"][alpha][beta] > 0:
+					scores["wt_p_r_exp2"][alpha][beta] = \
+									((1-beta)**ad_d_dict["wt_fps"]) *	\
+										((1-alpha)**ad_d_dict["fns"]) / \
+											scores["wt_p_r_exp2"][alpha][beta]
+
+			if "wt_p1_r1_agg" in MODELS:
+				scores["wt_p1_r1_agg"][alpha][beta] = \
+						(alpha*ad_d_dict["wt_tps"]) - (beta*ad_d_dict["wt_fps"])
 
 			if "wt_p1_r1_exp" in MODELS:
 				scores["wt_p1_r1_exp"][alpha][beta] = alpha**ad_d_dict["wt_tps"]
@@ -163,6 +214,10 @@ def calculate_scores(ad_d_dict):
 											beta**ad_d_dict["wt_fps"] / \
 											scores["wt_p1_r1_exp"][alpha][beta]
 
+			if "wt_p1_r2_agg" in MODELS:
+				scores["wt_p1_r2_agg"][alpha][beta] = \
+						(alpha*ad_d_dict["tns"]) - (beta*ad_d_dict["wt_fps"])
+
 			if "wt_p1_r2_exp" in MODELS:
 				scores["wt_p1_r2_exp"][alpha][beta] = alpha**ad_d_dict["tns"]
 				if scores["wt_p1_r2_exp"][alpha][beta] > 0:
@@ -170,12 +225,20 @@ def calculate_scores(ad_d_dict):
 											beta**ad_d_dict["wt_fps"] / \
 											scores["wt_p1_r2_exp"][alpha][beta]
 
+			if "wt_p2_r1_agg" in MODELS:
+				scores["wt_p2_r1_agg"][alpha][beta] = \
+						(alpha*ad_d_dict["wt_tps"]) - (beta*ad_d_dict["fns"])
+
 			if "wt_p2_r1_exp" in MODELS:
 				scores["wt_p2_r1_exp"][alpha][beta] = alpha**ad_d_dict["wt_tps"]
 				if scores["wt_p2_r1_exp"][alpha][beta] > 0:
 					scores["wt_p2_r1_exp"][alpha][beta] = \
 											beta**ad_d_dict["fns"] / \
 											scores["wt_p2_r1_exp"][alpha][beta]
+
+			if "wt_p2_r2_agg" in MODELS:
+				scores["wt_p2_r2_agg"][alpha][beta] = \
+							(alpha*ad_d_dict["tns"]) - (beta*ad_d_dict["fns"])
 
 			if "wt_p2_r2_exp" in MODELS:
 				scores["wt_p2_r2_exp"][alpha][beta] = alpha**ad_d_dict["tns"]
@@ -186,12 +249,7 @@ def calculate_scores(ad_d_dict):
 
 			if "wt_r_agg" in MODELS:
 				scores["wt_r_agg"][alpha][beta] = \
-						((alpha*ad_d_dict["wt_tps"]) + \
-						(1*ad_d_dict["wt_fps"]) + \
-						(1*ad_d_dict["fns"]) + (beta*ad_d_dict["tns"]))
-				if scores["wt_r_agg"][alpha][beta] > 0:
-					scores["wt_r_agg"][alpha][beta] = \
-											1 / scores["wt_r_agg"][alpha][beta]
+						(alpha*ad_d_dict["wt_tps"]) + (beta*ad_d_dict["tns"])
 
 			if "wt_r_exp" in MODELS:
 				scores["wt_r_exp"][alpha][beta] = \
@@ -225,6 +283,14 @@ def normalize_scores(ad_dict):
 			for beta in BETAS:
 				normal[model][alpha][beta] = {}
 				total = 0
+
+				# If some scores are negative (agg), use (x-x_min)/(x_max-x_min)
+				min_val = min(ad_dict[d][model][alpha][beta] for d in ad_dict)
+
+				if min_val < 0:
+					for d in ad_dict:
+						ad_dict[d][model][alpha][beta] = \
+									ad_dict[d][model][alpha][beta] - min_val
 
 				for d in ad_dict:
 					total += ad_dict[d][model][alpha][beta]
