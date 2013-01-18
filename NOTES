@@ -20,12 +20,17 @@ GRAPHS
 
 
 TODOS
-5. Selenium parallel. New set of trials?
-7. Verify whether varying the number of trials -- mean(knees), median(knees), max(knees), max_trials -- impacts the results.
+False positives and false negatives in alpha^b * beta^c.
+When do and don't precision Vs recall graphs make sense.
+Performance when varying the base trial.
+Performance of other exponentiation models.
+Performance of aggregation models.
+Selenium parallel.
 
 LOWPRI TODOS
-2. What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
-3. What makes a good scoring model for predictions?
+What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
+What makes a good scoring model for predictions?
+Improve ad matching. May be more complicated, but to increase precision while not sacrificing recall.
 
 
 DONE
@@ -54,6 +59,8 @@ DONE
 13. Models with all combinations of (alpha, beta), (a, b, c, d). All models give identical results.
 14. Aggregation models. Normalizing scores a big problem, and could be the cause of bad results.
 15. Aggregation and exponentiation models using both penalties and both rewards.
+16. NO MORE NORMALIZATION.
+17. Parallelized computation of precision and recall for various model, alpha, beta, threshold combinations. (Threshold now a function of alpha and beta.)
 
 LOWPRI DONE
 1. Describe args and returns along with the purpose for all functions.
