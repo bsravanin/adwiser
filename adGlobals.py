@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 14th January, 2013
+Date: 18th January, 2013
 Purpose: Global variables used throughout.
 '''
 
@@ -28,6 +28,11 @@ MODELS = ["p_agg", "p_exp", "p_r_agg", "p_r_agg2", "p_r_exp", "p_r_exp2", \
 
 ALPHAS = adLib.float_range(0, 1, 0.1)
 BETAS = adLib.float_range(0, 1, 0.1)
-THRESHOLDS = adLib.float_range(0, 1, 0.1)
+THRESHOLDS = adLib.float_range(0, 0.1, 0.01)
+
+MODELS = ["p_exp"]
+ALPHAS = [0.1]
+BETAS = [0.7]
+THRESHOLDS = [0.08]
 
 MAX_PLOTS_PER_PNG = 6

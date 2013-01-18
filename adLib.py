@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 9th January, 2013
+Date: 16th January, 2013
 Purpose: A library of miscellaneous functions.
 '''
 
@@ -128,7 +128,7 @@ def dump_ads(ad_list, filename):
 
 def float_range(start, end, step):
 	'''A function similar to the regular range function in Python that supports
-	floating point steps.
+	floating point steps. Range is incusive of start and end.
 	
 	Args:
 		start: Floating-point number.

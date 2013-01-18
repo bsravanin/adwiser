@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 9th January, 2013
+Date: 18th January, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
@@ -533,6 +533,128 @@ def write_conf(base, other):
 	fd.close()
 
 
+def analyze_areas(areas_file):
+	'''INTERFACE: Analyze the precision-recall areas for various models, alphas,
+	betas, thresholds, and find the optimal parameters.
+
+	Args:
+		areas_file: A file of areas dump, e.g. "results/models_34t/areas.txt"
+	'''
+	fd = open(areas_file, "r")
+	areas = {}
+	max_areas = {}
+	models = set()
+	alphas = set()
+	betas = set()
+	thresholds = set()
+
+	for line in fd.readlines():
+		words = line.strip().split(". ")
+		model = words.pop(0)
+		area = float(words.pop())
+		alpha = beta = threshold = -1
+
+		for word in words:
+			if word.startswith("Alpha"):
+				alpha = round(float(word.lstrip("Alpha ")), 1)
+			elif word.startswith("Beta"):
+				beta = round(float(word.lstrip("Beta ")), 1)
+			elif word.startswith("Threshold"):
+				threshold = round(float(word.lstrip("Threshold ")), 1)
+
+		if alpha == 0 or beta == 0:
+			continue
+
+		if model not in areas:
+			areas[model] = {}
+			max_areas[model] = {"ab": 0, "at": 0, "bt": 0}
+
+		if alpha not in areas[model]:
+			areas[model][alpha] = {}
+
+		if beta not in areas[model][alpha]:
+			areas[model][alpha][beta] = {}
+
+		areas[model][alpha][beta][threshold] = area
+
+		if threshold == -1 and max_areas[model]["ab"] < area:
+			max_areas[model]["ab"] = area
+		elif beta == -1 and max_areas[model]["at"] < area:
+			max_areas[model]["at"] = area
+		elif alpha == -1 and max_areas[model]["bt"] < area:
+			max_areas[model]["bt"] = area
+
+		models.add(model)
+		alphas.add(alpha)
+		betas.add(beta)
+		thresholds.add(threshold)
+
+	fd.close()
+
+	alphas -= set([-1])
+	betas -= set([-1])
+	thresholds -= set([-1])
+
+	for model in models:
+		for alpha in alphas:
+			for beta in betas:
+				area1 = areas[model][alpha][beta][-1]
+				area2 = areas[model][beta][alpha][-1]
+				if area1 == area2:
+					print "Equal area", model, alpha, beta
+				else:
+					print "Unequal area", model, alpha, beta, area1, area2
+
+				if areas[model][alpha][beta][-1] == max_areas[model]["ab"]:
+					print "AB", model, alpha, beta, max_areas[model]["ab"]
+
+		for alpha in alphas:
+			for threshold in thresholds:
+				if areas[model][alpha][-1][threshold] == max_areas[model]["at"]:
+					print "AT", model, alpha, threshold, max_areas[model]["at"]
+
+		for beta in betas:
+			for threshold in thresholds:
+				if areas[model][-1][beta][threshold] == max_areas[model]["bt"]:
+					print "BT", model, beta, threshold, max_areas[model]["bt"]
+
+def plot_pr(filename):
+	'''INTERFACE: Plot precision, recall points for various thresholds.'''
+	fd = open(filename, "r")
+	precisions = []
+	recalls = []
+
+	for line in fd.readlines():
+		words = line.strip().split()
+		precisions.append(float(words[2]))
+		recalls.append(float(words[3]))
+
+	fd.close()
+
+	pylab.xlabel("Precision")
+	pylab.xlim([0.6, 1])
+	pylab.ylabel("Recall")
+	pylab.ylim([0.8, 1])
+	pylab.plot(precisions, recalls, ".")
+	pylab.savefig("tests/pr.png")
+	pylab.clf()
+
+def compute_prs(ads_file):
+	'''INTERFACE: Compute precision and recall for various combinations of
+	model, alpha, beta, threshold for the set of ads dumped into a file.
+
+	Args:
+		ads_file: File containing dumped ads. Usually after merging across
+		accounts.
+	'''
+	adwiser = {"ads": adLib.load_ads(ads_file)}
+	adwiser["prediction"] = adAnalyzer.analyze_ads(adwiser["ads"])
+	adwiser["scores"] = adAnalyzer.get_scores(adwiser["prediction"])
+	adwiser["truth"] = adAnalyzer.true_ds_of_ad_list(adwiser["ads"])
+	adwiser["verification"] = adAnalyzer.verify_predictions(adwiser)
+	adAnalyzer.aggregate_verifications(adwiser, pr)
+
+
 # churn(sys.argv[1], sys.argv[2])
 # plot_churn(sys.argv[2])
 # all_ads(sys.argv[1])
@@ -541,3 +663,6 @@ def write_conf(base, other):
 # plot_comparison(sys.argv[1])
 # analyze_comparison(sys.argv[1])
 # analyze_comparisons(sys.argv[1])
+# analyze_areas(sys.argv[1])
+# plot_pr(sys.argv[1])
+# compute_prs(sys.argv[1])

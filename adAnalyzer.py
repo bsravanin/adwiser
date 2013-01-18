@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 14th January, 2013
+Date: 18th January, 2013
 Purpose: To try out different heuristics to predict which Ds the ads are being
 targeted on.
 '''
@@ -263,6 +263,7 @@ def calculate_scores(ad_d_dict):
 
 def normalize_scores(ad_dict):
 	'''Normalize scores for Ds of an ad to be between 0 and 1.
+	NORMALIZATION DISABLED.
 
 	Args:
 		ad_dict: Multi-level dictionary of Ds, models, alphas, betas with values
@@ -284,6 +285,7 @@ def normalize_scores(ad_dict):
 				normal[model][alpha][beta] = {}
 				total = 0
 
+				'''
 				# If some scores are negative (agg), use (x-x_min)/(x_max-x_min)
 				min_val = min(ad_dict[d][model][alpha][beta] for d in ad_dict)
 
@@ -302,6 +304,10 @@ def normalize_scores(ad_dict):
 				else:
 					for d in ad_dict:
 						normal[model][alpha][beta][d] = -1
+				'''
+				for d in ad_dict:
+					normal[model][alpha][beta][d] = \
+												ad_dict[d][model][alpha][beta]
 
 	return normal
 
@@ -398,7 +404,7 @@ def analyze_ads(ad_list):
 		ad_list: List of ad objects.
 
 	Returns:
-		analyzed_ads: List of normalized score dicts for corresponding ad_list.
+		analyzed_ads: List of score dicts for corresponding ad_list.
 	'''
 	analyzed_ads = []
 
@@ -406,6 +412,34 @@ def analyze_ads(ad_list):
 		analyzed_ads.append(analyze_ad(ad))
 
 	return analyzed_ads
+
+
+def get_scores(predictions):
+	'''Get all the scores for a model, alpha, beta combination so that they can
+	be used as thresholds.
+
+	Args:
+		predictions: List of score dicts for corresponding ad_list.
+	
+	Return:
+		scores: Set of scores for each model, alpha, beta combination.
+	'''
+	scores = {}
+
+	for model in MODELS:
+		scores[model] = {}
+
+		for alpha in ALPHAS:
+			scores[model][alpha] = {}
+
+			for beta in BETAS:
+				scores[model][alpha][beta] = set()
+
+				for ad in predictions:
+					scores[model][alpha][beta] |= \
+											set(ad[model][alpha][beta].values())
+
+	return scores
 
 
 def verify_pred(predicted_ds_of_ad, true_ds_of_ad, threshold):
@@ -452,7 +486,7 @@ def verify_pred(predicted_ds_of_ad, true_ds_of_ad, threshold):
 	return result
 
 
-def verify_prediction(analyzed_ad, true_ds_of_ad):
+def verify_prediction(analyzed_ad, true_ds_of_ad, thresholds):
 	'''Verify the predictions made about an ad under various alphas, betas
 	considering various thresholds for various scores.
 
@@ -476,7 +510,12 @@ def verify_prediction(analyzed_ad, true_ds_of_ad):
 			for beta in analyzed_ad[model][alpha]:
 				verification[model][alpha][beta] = {}
 
-				for threshold in THRESHOLDS:
+				if type(thresholds) == list:
+					ths = thresholds
+				else:
+					ths = thresholds[model][alpha][beta]
+
+				for threshold in ths:
 					verification[model][alpha][beta][threshold] = \
 								verify_pred(analyzed_ad[model][alpha][beta], \
 													true_ds_of_ad, threshold)
@@ -489,8 +528,8 @@ def verify_predictions(adwiser):
 	betas considering various thresholds for various scores.
 
 	Args:
-		adwiser: Multi-level dictionary with prediction and truth for a list of
-		ads.
+		adwiser: Multi-level dictionary with predictions, scores (optional) and
+		truth for a list of ads.
 
 	Results:
 		verifications: List of multi-level dictionaries of models, alphas,
@@ -498,9 +537,14 @@ def verify_predictions(adwiser):
 	'''
 	verifications = []
 
-	for i in range(0, len(adwiser["ads"])):
-		verifications.append(verify_prediction(adwiser["prediction"][i], \
-														adwiser["truth"][i]))
+	if "scores" in adwiser:
+		for i in range(0, len(adwiser["ads"])):
+			verifications.append(verify_prediction(adwiser["prediction"][i], \
+										adwiser["truth"][i], adwiser["scores"]))
+	else:
+		for i in range(0, len(adwiser["ads"])):
+			verifications.append(verify_prediction(adwiser["prediction"][i], \
+											adwiser["truth"][i], THRESHOLDS))
 
 	return verifications
 
@@ -537,12 +581,12 @@ def compute_stats(result):
 	return result
 
 
-def aggregate_verifications(verifications):
+def aggregate_verifications(adwiser, pr=False):
 	'''Aggregate the verifications made about a list of ads for various alphas,
 	betas and thresholds.
 
 	Args:
-		verifications: List of multi-level dictionaries of models, alphas,
+		adwiser: List of multi-level dictionaries of models, alphas,
 		betas, thresholds, with number of TPs, FPs, FNs and TNs.
 	
 	Returns:
@@ -561,23 +605,34 @@ def aggregate_verifications(verifications):
 			for beta in BETAS:
 				aggregates[model][alpha][beta] = {}
 
-				for threshold in THRESHOLDS:
+				if "scores" in adwiser:
+					thresholds = adwiser["scores"][model][alpha][beta]
+				else:
+					thresholds = THRESHOLDS
+
+				for threshold in thresholds:
 					aggregate = {}
 
 					for key in ("tps", "fps", "fns", "tns"):
 						aggregate[key] = 0
-	
-						for ad in verifications:
+
+						for ad in adwiser["verification"]:
 							aggregate[key] += \
 										ad[model][alpha][beta][threshold][key]
 
 					targeted = {"tps": 0, "fps": 0, "fns": 0, "tns": 0}
 
-					for ad in verifications:
+					for ad in adwiser["verification"]:
 						key = ad[model][alpha][beta][threshold]["targeted"]
 						targeted[key] += 1
 
 					aggregate["targeted"] = compute_stats(targeted)
+
+					if pr:
+						precision = aggregate["targeted"]["precision"]
+						recall = aggregate["targeted"]["recall"]
+						print model, alpha, beta, threshold, precision, recall
+
 					aggregates[model][alpha][beta][threshold] = \
 													compute_stats(aggregate)
 

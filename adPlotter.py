@@ -164,7 +164,8 @@ def draw_single_plots(results_dir, results_set, plot_params):
 					for metric in metrics:
 						y_values[metric].append(results_set[model][alpha][beta][threshold][metric])
 
-	if "precision" in metrics and "recall" in metrics:
+	if "precision" in metrics and "recall" in metrics \
+		and not plot_params["plot"]:
 		print title, area(x_values, y_values)
 
 	if not plot_params["plot"]:
@@ -356,13 +357,14 @@ def draw_all_plots(results_dir, results_set):
 		alphas, betas, thresholds, targeted (optional), metrics.
 	'''
 	make_plot_dirs(results_dir)
+	plot = False
 
 	for model in MODELS:
 		for alpha in ALPHAS:
 			for beta in BETAS:
 				plot_params = {"model": model, "x_key": "threshold", \
 								"alpha": alpha, "beta": beta, "targeted": True,\
-								"plot": False, \
+								"plot": plot, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
 														
@@ -371,7 +373,7 @@ def draw_all_plots(results_dir, results_set):
 			for threshold in THRESHOLDS:
 				plot_params = {"model": model, "x_key": "beta", \
 								"alpha": alpha,	"threshold": threshold, \
-								"targeted": True, "plot": False, \
+								"targeted": True, "plot": plot, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
 
@@ -379,7 +381,7 @@ def draw_all_plots(results_dir, results_set):
 			for threshold in THRESHOLDS:
 				plot_params = {"model": model, "x_key": "alpha", "beta": beta, \
 								"threshold": threshold, "targeted": True, \
-								"plot": False, \
+								"plot": plot, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
 		'''
