@@ -17,20 +17,19 @@ Xs are repeated across similar accounts even with no common Ds.
 
 
 GRAPHS
+Performance of a model Vs varying number of shadow trials.
 
 
 TODOS
 False positives and false negatives in alpha^b * beta^c.
 When do and don't precision Vs recall graphs make sense.
-Performance when varying the base trial.
-Performance of other exponentiation models.
-Performance of aggregation models.
 Selenium parallel.
 
 LOWPRI TODOS
 What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
 What makes a good scoring model for predictions?
 Improve ad matching. May be more complicated, but to increase precision while not sacrificing recall.
+Predict Ds.
 
 
 DONE
@@ -61,6 +60,10 @@ DONE
 15. Aggregation and exponentiation models using both penalties and both rewards.
 16. NO MORE NORMALIZATION.
 17. Parallelized computation of precision and recall for various model, alpha, beta, threshold combinations. (Threshold now a function of alpha and beta.)
+18. Ad dumps for individual base, cumulative shadow, common + diff.
+19. Precision and recall for various model, alpha, beta, threshold combinations for each base trials.
+20. A more methodical manner of identifying optimal parameters. Based on area under (precision+recall limit) and base trials.
+
 
 LOWPRI DONE
 1. Describe args and returns along with the purpose for all functions.

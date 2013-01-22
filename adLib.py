@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 16th January, 2013
+Date: 22nd January, 2013
 Purpose: A library of miscellaneous functions.
 '''
 

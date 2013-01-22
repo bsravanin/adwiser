@@ -283,28 +283,7 @@ def normalize_scores(ad_dict):
 
 			for beta in BETAS:
 				normal[model][alpha][beta] = {}
-				total = 0
 
-				'''
-				# If some scores are negative (agg), use (x-x_min)/(x_max-x_min)
-				min_val = min(ad_dict[d][model][alpha][beta] for d in ad_dict)
-
-				if min_val < 0:
-					for d in ad_dict:
-						ad_dict[d][model][alpha][beta] = \
-									ad_dict[d][model][alpha][beta] - min_val
-
-				for d in ad_dict:
-					total += ad_dict[d][model][alpha][beta]
-
-				if total > 0:
-					for d in ad_dict:
-						normal[model][alpha][beta][d] = \
-								ad_dict[d][model][alpha][beta] / float(total)
-				else:
-					for d in ad_dict:
-						normal[model][alpha][beta][d] = -1
-				'''
 				for d in ad_dict:
 					normal[model][alpha][beta][d] = \
 												ad_dict[d][model][alpha][beta]
@@ -586,8 +565,10 @@ def aggregate_verifications(adwiser, pr=False):
 	betas and thresholds.
 
 	Args:
-		adwiser: List of multi-level dictionaries of models, alphas,
-		betas, thresholds, with number of TPs, FPs, FNs and TNs.
+		adwiser: List of multi-level dictionaries of models, alphas, betas,
+		thresholds, with number of TPs, FPs, FNs and TNs.
+		pr: Boolean about whether to print precision and recall, which is used
+		to determine optimal combinations of model, alpha, beta, threshold.
 	
 	Returns:
 		aggregates: Multi-level dictionary of models, alphas, betas, thresholds

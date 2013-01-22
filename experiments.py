@@ -1,15 +1,16 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 18th January, 2013
+Date: 22nd January, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
 functions.
 '''
 
-import adLib, adOps, adParser
-import os, pylab, re, sys
+
+import adAnalyzer, adLib, adOps, adParser
+import ast, os, pylab, re, sys
 
 
 def make_dir(dirpath):
@@ -618,26 +619,6 @@ def analyze_areas(areas_file):
 				if areas[model][-1][beta][threshold] == max_areas[model]["bt"]:
 					print "BT", model, beta, threshold, max_areas[model]["bt"]
 
-def plot_pr(filename):
-	'''INTERFACE: Plot precision, recall points for various thresholds.'''
-	fd = open(filename, "r")
-	precisions = []
-	recalls = []
-
-	for line in fd.readlines():
-		words = line.strip().split()
-		precisions.append(float(words[2]))
-		recalls.append(float(words[3]))
-
-	fd.close()
-
-	pylab.xlabel("Precision")
-	pylab.xlim([0.6, 1])
-	pylab.ylabel("Recall")
-	pylab.ylim([0.8, 1])
-	pylab.plot(precisions, recalls, ".")
-	pylab.savefig("tests/pr.png")
-	pylab.clf()
 
 def compute_prs(ads_file):
 	'''INTERFACE: Compute precision and recall for various combinations of
@@ -652,7 +633,206 @@ def compute_prs(ads_file):
 	adwiser["scores"] = adAnalyzer.get_scores(adwiser["prediction"])
 	adwiser["truth"] = adAnalyzer.true_ds_of_ad_list(adwiser["ads"])
 	adwiser["verification"] = adAnalyzer.verify_predictions(adwiser)
-	adAnalyzer.aggregate_verifications(adwiser, pr)
+	adAnalyzer.aggregate_verifications(adwiser, True)
+
+
+def show_verifications(ads_file):
+	'''INTERFACE: Print the verifications of predictions made for the set of
+	ads dumped into a file.
+
+	Args:
+		ads_file: File containing dumped ads. Usually after merging across
+		accounts.
+	'''
+	adwiser = {"ads": adLib.load_ads(sys.argv[1])}
+	adwiser["prediction"] = adAnalyzer.analyze_ads(adwiser["ads"])
+	adwiser["truth"] = adAnalyzer.true_ds_of_ad_list(adwiser["ads"])
+	adwiser["verification"] = adAnalyzer.verify_predictions(adwiser)
+
+	for i in range(0, len(adwiser["ads"])):
+		print adwiser["ads"][i].get_ad_str(), adwiser["prediction"][i]
+		print adwiser["verification"][i]
+		print
+
+
+def dump_all_ads(conf_file, results_dir):
+	file_sets = adParser.parse_conf("accounts.cf")
+	shadow_ads = []
+
+	make_dir(results_dir + "/base")
+	make_dir(results_dir + "/shadow")
+
+	print "Trial Base Shadow Cumulative"
+	for i in range(0, 91):
+		base_file_set = file_sets["ccloudauditor10"][i]
+		base_ads = adParser.parse_html_set(base_file_set)
+		adLib.dump_ads(base_ads, results_dir + "/base/base_" + str(i) + ".txt")
+		shadow_file_set = adParser.get_file_set(file_sets, i, "ccloudauditor10")
+		sads = adParser.parse_html_set(shadow_file_set)
+		shadow_ads = adOps.union([shadow_ads, sads])
+		adLib.dump_ads(shadow_ads, results_dir + "/shadow/shadow_" + str(i) + ".txt")
+		print i, len(base_ads), len(sads), len(shadow_ads)
+
+
+def find_good_params(pr_file):
+	'''INTERNAL: Find the set of parameters in a precision-recall file for which
+	both precision and recall are at least min_val.
+
+	Args:
+		pr_file: File with model, alpha, beta, threshold, precision, recall
+		records.
+	
+	Return:
+		Directory of sets of (alpha, beta) tuples.
+	'''
+	fd = open(pr_file, "r")
+	prs = []
+	for line in fd.readlines():
+		words = line.strip().split()
+		prs.append([words[1], words[2], float(words[4]), float(words[5])])
+	fd.close()
+
+	alpha_betas = {}
+	for f in [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]:
+		alpha_betas[f] = set()
+
+		for record in prs:
+			if record[2] >= f and record[3] >= f:
+				alpha_betas[f].add((record[0], record[1]))
+
+	return alpha_betas
+
+
+def find_optimal_params(rawdir, result_prefix):
+	'''INTERFACE:
+
+	Args:
+		rawdir: Directory containing optimal_b_s.txt files.
+		result_prefix: Prefix to the results file to be written.
+	'''
+	docs = 91
+
+	for t in [33, 72]:
+		alpha_betas = []
+		output = ""
+
+		for i in range(0, docs):
+			alpha_betas.append(find_good_params(rawdir + "/optimal_" + str(i) \
+													+ "_" + str(t) + ".txt"))
+
+		for f in [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]:
+			ab_freqs = {}
+
+			for i in range(0, docs):
+				for ab in alpha_betas[i][f]:
+					if ab in ab_freqs:
+						ab_freqs[ab] += 1
+					else:
+						ab_freqs[ab] = 1
+
+			output += str(f) + " " + str(ab_freqs) + "\n"
+
+		fd = open(result_prefix + "_" + str(t) + ".txt", "w")
+		fd.write(output)
+		fd.flush()
+		fd.close()
+
+
+def area(x_values, y_values):
+	'''INTERNAL: To calculate the area under a curve.
+
+	Args:
+		x_values: List of x-coordinates.
+		y_values: List of y-coordinates.
+	
+	Return:
+		A real number indicating the area under the plot of x Vs y.
+	'''
+	area = 0
+
+	for i in range(1, len(x_values)):
+		area += (0.5 * (x_values[i] - x_values[i-1]) * \
+					(y_values[i] + y_values[i-1]))
+
+	return area
+
+
+def summarize_optimal_params(optimal_file):
+	'''INTERFACE: Final round of identifying optimal parameters. Based on area
+	under the curve of "limit Vs base".
+
+	Args:
+		optimal_file: File containing precision and recall limits and a
+		stringified dictionary of parameters (tuples) and their corresponding
+		number of base trials. e.g. "results/optimal/p_exp_33.txt"
+	
+	Return:
+		summary: A multi-level dictionary of parameters and their corresponding
+		limits, bases and areas.
+	'''
+	fd = open(optimal_file, "r")
+	summary = {}
+
+	for line in fd.readlines():
+		words = line.strip().split()
+		limit = float(words[0])
+		params_dict = ast.literal_eval(" ".join(words[1:]))
+
+		for param in params_dict:
+			if param in summary:
+				summary[param]['limits'].append(limit)
+				summary[param]['bases'].append(params_dict[param])
+			else:
+				summary[param] = {'limits': [limit], \
+												'bases': [params_dict[param]]}
+
+	fd.close()
+
+	params = summary.keys()
+	for p in params:
+		summary[p]['area'] = area(summary[p]['limits'], summary[p]['bases'])
+
+	max_area = max([summary[p]['area'] for p in params])
+	for p in params:
+		if summary[p]['area'] < max_area:
+			summary.pop(p)
+
+	return summary
+
+
+def summarize_all_optimal_params(optimal_dir):
+	summaries = {}
+
+	for optimal_file in os.listdir(optimal_dir):
+		summaries[optimal_file.strip(".txt")] = \
+					summarize_optimal_params(optimal_dir + "/" + optimal_file)
+
+	'''
+	limits = sorted(summaries["r_exp_33"].keys())
+	print "\t", "\t".join(limits)
+	for s in sorted(summaries.keys()):
+		line = s
+		for l in limits:
+			line += "\t" + str(summaries[s][l])
+		print line
+	'''
+
+
+'''
+Common + Diff ads.
+for i in range(0, 91):
+	print i
+	for j in [9, 33, 72, 90]:
+		base_ads = adLib.load_ads("results/dumped_ads/base/base_" + str(i) + \
+																		".txt")
+		shadow_ads = adLib.load_ads("results/dumped_ads/shadow/shadow_" + \
+																str(j) + ".txt")
+		common_ads = adOps.intersection([base_ads, shadow_ads])
+		adOps.difference(base_ads, common_ads)
+		adLib.dump_ads([base_ads, common_ads], \
+						"results/dumped_ads/analyzed/analyzed_" + str(i) + \
+						"_" + str(j) + ".txt")
+'''
 
 
 # churn(sys.argv[1], sys.argv[2])
@@ -666,3 +846,8 @@ def compute_prs(ads_file):
 # analyze_areas(sys.argv[1])
 # plot_pr(sys.argv[1])
 # compute_prs(sys.argv[1])
+# show_verifications(sys.argv[1])
+# dump_all_ads(sys.argv[1], sys.argv[2])
+# find_optimal_params(sys.argv[1], sys.argv[2])
+# summarize_optimal_params(sys.argv[1])
+# summarize_all_optimal_params(sys.argv[1])

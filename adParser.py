@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 5th January, 2013
+Date: 19th January, 2013
 Purpose: A library of functions to analyze Gmail ads including derived class of
 HTLMParser to parse Gmail ads.
 '''
@@ -151,3 +151,63 @@ def parse_conf(conf_file):
 
 	fd.close()
 	return file_set_lists
+
+
+def get_user_file_set(file_sets, user, trials):
+	'''Get a cumulative fileset for the specified number of trials for the
+	specified account.
+
+	Args:
+		file_sets: Dictionary with keys as users and values as a list of sets,
+		where each set contains the HTML files in a trial directory.
+		user: The account whose trials are of interest.
+		trials: Number of trials whose HTML files are of interest.
+
+	Returns:
+		file_set: Set of HTML files.
+	'''
+	file_set = set()
+	max_trials = len(file_sets[user])
+
+	if trials == "all":
+		trials = max_trials
+	elif trials > max_trials:
+		print "WARNING:", user, "only has", max_trials, " trials."
+		trials = max_trials
+
+	for i in range(0, trials):
+		file_set |= file_sets[user][i]
+
+	return file_set
+
+
+def get_file_set(file_sets, trials, base_account="", option="only"):
+	'''Get a cumulative fileset for all users except the base account, for the
+	specified trial or upto the specified trial.
+
+	Args:
+		file_sets: Dictionary with keys as users and values as a list of sets,
+		where each set contains the HTML files in a trial directory.
+		trials: Number of trials whose HTML files are of interest.
+		base_account: The base account whose trials are not considered.
+		option: "only" or "upto"
+
+	Returns:
+		file_set: Set of HTML files.
+	'''
+	file_set = set()
+
+	for user in file_sets:
+		if user == base_account:
+			continue
+
+		if option == "only":
+			max_trials = len(file_sets[user])
+			if trials < max_trials:
+				file_set |= file_sets[user][trials]
+			else:
+				print "WARNING:", user, "only has", max_trials, " trials."
+		else:
+			file_set |= get_user_file_set(file_sets, user, trials)
+
+	return file_set
