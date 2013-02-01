@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 22nd January, 2013
+Date: 25th January, 2013
 Purpose: To draw different kinds of plots.
 '''
 
@@ -67,7 +67,7 @@ def save_plot(xlabel, ylabel, title, imgpath, plot_type="default"):
 	pylab.ylabel(ylabel)
 
 	if plot_type == "default":
-		pylab.axis([0, 0.9, 0, 1])
+		pylab.axis([0, 1, 0, 1])
 		pylab.axhline(y=0.7, color="black", ls="dotted")
 		pylab.annotate("y=0.7", xy=(0.9, 0.7))
 	else:
@@ -118,11 +118,13 @@ def draw_single_plots(results_dir, results_set, plot_params):
 	imgpath = model + "/" + x_key + "/"
 	imgname = ""
 
-	if "targeted" in plot_params:
+	if "targeted" in plot_params and plot_params["targeted"]:
 		title = "Targeted " + title
 		imgpath = results_dir + "/targeted/" + imgpath
+		targeted = True
 	else:
 		imgpath = results_dir + "/" + imgpath
+		targeted = False
 
 	if "alpha" in plot_params:
 		alphas = [plot_params["alpha"]]
@@ -157,7 +159,7 @@ def draw_single_plots(results_dir, results_set, plot_params):
 			for t in range(0, len(thresholds)):
 				threshold = thresholds[t]
 
-				if "targeted" in plot_params:
+				if targeted:
 					for metric in metrics:
 						y_values[metric].append(results_set[model][alpha][beta][threshold]["targeted"][metric])
 				else:
@@ -357,67 +359,69 @@ def draw_all_plots(results_dir, results_set):
 		alphas, betas, thresholds, targeted (optional), metrics.
 	'''
 	make_plot_dirs(results_dir)
-	plot = False
+	pFlag = True
+	tFlag = False
 
 	for model in MODELS:
+		'''
 		for alpha in ALPHAS:
 			for beta in BETAS:
 				plot_params = {"model": model, "x_key": "threshold", \
-								"alpha": alpha, "beta": beta, "targeted": True,\
-								"plot": plot, \
+								"alpha": alpha, "beta": beta, \
+								"targeted": tFlag, "plot": pFlag, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
-														
 		
 		for alpha in ALPHAS:
 			for threshold in THRESHOLDS:
 				plot_params = {"model": model, "x_key": "beta", \
 								"alpha": alpha,	"threshold": threshold, \
-								"targeted": True, "plot": plot, \
-								"metrics": ["precision", "recall"]}
-				draw_single_plots(results_dir, results_set, plot_params)
-
-		for beta in BETAS:
-			for threshold in THRESHOLDS:
-				plot_params = {"model": model, "x_key": "alpha", "beta": beta, \
-								"threshold": threshold, "targeted": True, \
-								"plot": plot, \
+								"targeted": tFlag, "plot": pFlag, \
 								"metrics": ["precision", "recall"]}
 				draw_single_plots(results_dir, results_set, plot_params)
 		'''
 
+		for beta in BETAS:
+			for threshold in THRESHOLDS:
+				plot_params = {"model": model, "x_key": "alpha", "beta": beta, \
+								"threshold": threshold, "targeted": tFlag, \
+								"plot": pFlag, \
+								"metrics": ["precision", "recall"]}
+				draw_single_plots(results_dir, results_set, plot_params)
+
+		'''
 		for alpha in ALPHAS:
 			plot_params = {"model": model, "x_key": "threshold", \
-							"z_key": "beta", "alpha": alpha, "targeted": True, \
+							"z_key": "beta", "alpha": alpha, "targeted": tFlag,\
 							"metrics": ["precision", "recall"]}
 			draw_multi_plots(results_dir, results_set, plot_params)
 
 			plot_params = {"model": model, "x_key": "beta", \
 							"z_key": "threshold", "alpha": alpha, \
-							"targeted": True, \
+							"targeted": tFlag, \
 							"metrics": ["precision", "recall"]}
 			draw_multi_plots(results_dir, results_set, plot_params)
 
 		for beta in BETAS:
 			plot_params = {"model": model, "x_key": "threshold", \
-							"z_key": "alpha", "beta": beta, "targeted": True, \
+							"z_key": "alpha", "beta": beta, "targeted": tFlag, \
 							"metrics": ["precision", "recall"]}
 			draw_multi_plots(results_dir, results_set, plot_params)
 
 			plot_params = {"model": model, "x_key": "alpha", \
 							"z_key": "threshold", "beta": beta, \
-							"targeted": True, \
+							"targeted": tFlag, \
 							"metrics": ["precision", "recall"]}
 			draw_multi_plots(results_dir, results_set, plot_params)
 
 		for threshold in THRESHOLDS:
 			plot_params = {"model": model, "x_key": "alpha", "z_key": "beta", \
-							"threshold": threshold, "targeted": True, \
+							"threshold": threshold, "targeted": tFlag, \
 							"metrics": ["precision", "recall"]}
 			draw_multi_plots(results_dir, results_set, plot_params)
 
 			plot_params = {"model": model, "x_key": "beta", "z_key": "alpha", \
-							"threshold": threshold, "targeted": True, \
+							"threshold": threshold, "targeted": tFlag, \
 							"metrics": ["precision", "recall"]}
 			draw_multi_plots(results_dir, results_set, plot_params)
 		'''

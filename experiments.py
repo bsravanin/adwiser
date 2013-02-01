@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 22nd January, 2013
+Date: 1st February, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
@@ -119,7 +119,7 @@ def avg_churn(churn, min_uid, max_uid):
 
 def save_churn_png(results_dir, churn, min_uid, max_uid, knee):
 	'''INTERNAL: Save the churn PNG with all rings and bells.
-	
+
 	Args:
 		results_dir: Directory path to save experiment results.
 		churn: Multi-level dictionary of users, trials/total/d_s/r_s/x_s/knee_x/
@@ -171,7 +171,7 @@ def save_churn_png(results_dir, churn, min_uid, max_uid, knee):
 
 def save_avg_churn_png(results_dir, churn):
 	'''INTERNAL: Save the average churn PNGs.
-	
+
 	Args:
 		results_dir: Directory path to save experiment results.
 		churn: Multi-level dictionary of users, trials/total/d_s/r_s/x_s/knee_x/
@@ -630,7 +630,8 @@ def compute_prs(ads_file):
 	'''
 	adwiser = {"ads": adLib.load_ads(ads_file)}
 	adwiser["prediction"] = adAnalyzer.analyze_ads(adwiser["ads"])
-	adwiser["scores"] = adAnalyzer.get_scores(adwiser["prediction"])
+	# Uncomment below line to try all possible thresholds.
+	# adwiser["scores"] = adAnalyzer.get_scores(adwiser["prediction"])
 	adwiser["truth"] = adAnalyzer.true_ds_of_ad_list(adwiser["ads"])
 	adwiser["verification"] = adAnalyzer.verify_predictions(adwiser)
 	adAnalyzer.aggregate_verifications(adwiser, True)
@@ -644,7 +645,7 @@ def show_verifications(ads_file):
 		ads_file: File containing dumped ads. Usually after merging across
 		accounts.
 	'''
-	adwiser = {"ads": adLib.load_ads(sys.argv[1])}
+	adwiser = {"ads": adLib.load_ads(ads_file)}
 	adwiser["prediction"] = adAnalyzer.analyze_ads(adwiser["ads"])
 	adwiser["truth"] = adAnalyzer.true_ds_of_ad_list(adwiser["ads"])
 	adwiser["verification"] = adAnalyzer.verify_predictions(adwiser)
@@ -674,14 +675,31 @@ def dump_all_ads(conf_file, results_dir):
 		print i, len(base_ads), len(sads), len(shadow_ads)
 
 
-def find_good_params(pr_file):
-	'''INTERNAL: Find the set of parameters in a precision-recall file for which
-	both precision and recall are at least min_val.
+'''
+Common + Diff ads.
+for i in range(0, 91):
+	print i
+	for j in [9, 33, 72, 90]:
+		base_ads = adLib.load_ads("results/dumped_ads/base/base_" + str(i) + \
+																		".txt")
+		shadow_ads = adLib.load_ads("results/dumped_ads/shadow/shadow_" + \
+																str(j) + ".txt")
+		common_ads = adOps.intersection([base_ads, shadow_ads])
+		adOps.difference(base_ads, common_ads)
+		adLib.dump_ads([base_ads, common_ads], \
+						"results/dumped_ads/analyzed/analyzed_" + str(i) + \
+						"_" + str(j) + ".txt")
+'''
+
+
+def find_good_abs(pr_file):
+	'''INTERNAL: Find the set of (alpha, beta) tuples in a precision-recall file
+	for which both precision and recall are at least min_val.
 
 	Args:
 		pr_file: File with model, alpha, beta, threshold, precision, recall
 		records.
-	
+
 	Return:
 		Directory of sets of (alpha, beta) tuples.
 	'''
@@ -703,8 +721,8 @@ def find_good_params(pr_file):
 	return alpha_betas
 
 
-def find_optimal_params(rawdir, result_prefix):
-	'''INTERFACE:
+def find_optimal_abs(rawdir, result_prefix):
+	'''INTERFACE: Identify the optimal set of (alpha, beta) tuples.
 
 	Args:
 		rawdir: Directory containing optimal_b_s.txt files.
@@ -717,7 +735,7 @@ def find_optimal_params(rawdir, result_prefix):
 		output = ""
 
 		for i in range(0, docs):
-			alpha_betas.append(find_good_params(rawdir + "/optimal_" + str(i) \
+			alpha_betas.append(find_good_abs(rawdir + "/optimal_" + str(i) \
 													+ "_" + str(t) + ".txt"))
 
 		for f in [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]:
@@ -744,7 +762,7 @@ def area(x_values, y_values):
 	Args:
 		x_values: List of x-coordinates.
 		y_values: List of y-coordinates.
-	
+
 	Return:
 		A real number indicating the area under the plot of x Vs y.
 	'''
@@ -757,7 +775,146 @@ def area(x_values, y_values):
 	return area
 
 
-def summarize_optimal_params(optimal_file):
+def find_good_thresholds(pr_file, alpha_betas):
+	'''INTERNAL: Find the set of thresholds in a precision-recall file for which
+	both precision and recall are at least min_val (0.6), for the given set of
+	(alpha, beta) tuples.
+
+	Args:
+		pr_file: File with model, alpha, beta, threshold, precision, recall
+		records.
+		alpha_betas: Set of (alpha, beta) tuples.
+
+	Return:
+		thresholds: Dictionary of good thresholds and their respective
+		(precision, recall) tuples for each (alpha, beta) tuples in alpha_betas.
+	'''
+	min_val = 0.6
+	fd = open(pr_file, "r")
+	thresholds = {}
+
+	for line in fd.readlines():
+		words = line.strip().split()
+		precision = float(words[4])
+		recall = float(words[5])
+
+		for (alpha, beta) in alpha_betas:
+			if words[1] == alpha and words[2] == beta and precision >= min_val \
+				and recall >= min_val:
+				if (alpha, beta) not in thresholds:
+					thresholds[(alpha, beta)] = {}
+
+				thresholds[(alpha, beta)][float(words[3])] = (precision, recall)
+
+	fd.close()
+	return thresholds
+
+
+def find_optimal_thresholds(rawdir, file_suffix, alpha_betas):
+	'''INTERFACE: Find the optimal thresholds for the given set of (alpha, beta)
+	tuples for the given model.
+
+	Args:
+		rawdir: Directory containing optimal_b_s.txt files.
+		file_suffix: Suffix of the optimal_b_s.txt files which'ld be considered.
+		alpha_betas: Set of (alpha, beta) tuples.
+	'''
+	good_thresholds = []
+	optimals = {}
+
+	for ab in alpha_betas:
+		optimals[ab] = {}
+
+	for filename in os.listdir(rawdir):
+		if not filename.endswith(file_suffix):
+			continue
+
+		good_ts = find_good_thresholds(rawdir + "/" + filename, \
+															alpha_betas)
+		for ab in good_ts:
+			for t in good_ts[ab]:
+				if t not in optimals[ab]:
+					optimals[ab][t] = {"limits": (0.6, 0.65, 0.7, 0.75, 0.8, \
+										0.85, 0.9, 0.95),"bases": [0, 0, 0, 0, \
+										0, 0, 0, 0]}
+
+		good_thresholds.append(good_ts)
+
+	for good_ts in good_thresholds:
+		for ab in good_ts:
+			for t in optimals[ab]:
+				if t in good_ts[ab]:
+					(precision, recall) = good_ts[ab][t]
+
+					for i in range(0, len(optimals[ab][t]["limits"])):
+						if precision >= optimals[ab][t]["limits"][i] \
+							and recall >= optimals[ab][t]["limits"][i]:
+							optimals[ab][t]["bases"][i] += 1
+				else:
+					smaller_ts = []
+
+					for t2 in good_ts[ab]:
+						if t2 <= t:
+							smaller_ts.append(t2)
+
+					if len(smaller_ts) > 0:
+						(precision, recall) = good_ts[ab][max(smaller_ts)]
+
+						for i in range(0, len(optimals[ab][t]["limits"])):
+							if precision >= optimals[ab][t]["limits"][i] \
+								and recall >= optimals[ab][t]["limits"][i]:
+								optimals[ab][t]["bases"][i] += 1
+
+	for ab in optimals:
+		for t in optimals[ab]:
+			optimals[ab][t]["area"] = area(optimals[ab][t]["limits"], \
+												optimals[ab][t]["bases"])
+
+		max_area = max([optimals[ab][t]["area"] for t in optimals[ab]])
+		for t in optimals[ab]:
+			if optimals[ab][t]["area"] >= max_area:
+				print ab[0], ab[1], t, optimals[ab][t]
+
+
+def f_measure(precision, recall):
+	beta = 1
+	return precision*recall / ((beta*beta*precision) + recall)
+
+
+def threshold_f_measures(pr_file, alpha_betas):
+	'''INTERNAL: Find the set of thresholds in a precision-recall file for the
+	given set of (alpha, beta) tuples, and their respective F-measures.
+
+	Args:
+		pr_file: File with model, alpha, beta, threshold, precision, recall
+		records.
+		alpha_betas: Set of (alpha, beta) tuples.
+
+	Return:
+		thresholds: Dictionary of thresholds and their respective F-measures for
+		each (alpha, beta) tuples in alpha_betas.
+	'''
+	fd = open(pr_file, "r")
+	thresholds = {}
+
+	for line in fd.readlines():
+		words = line.strip().split()
+		precision = float(words[4])
+		recall = float(words[5])
+
+		for (alpha, beta) in alpha_betas:
+			if words[1] == alpha and words[2] == beta:
+				if (alpha, beta) not in thresholds:
+					thresholds[(alpha, beta)] = {}
+
+				thresholds[(alpha, beta)][float(words[3])] = \
+													f_measure(precision, recall)
+
+	fd.close()
+	return thresholds
+
+
+def summarize_optimal_params(optimal_file, rawdir):
 	'''INTERFACE: Final round of identifying optimal parameters. Based on area
 	under the curve of "limit Vs base".
 
@@ -765,7 +922,8 @@ def summarize_optimal_params(optimal_file):
 		optimal_file: File containing precision and recall limits and a
 		stringified dictionary of parameters (tuples) and their corresponding
 		number of base trials. e.g. "results/optimal/p_exp_33.txt"
-	
+		rawdir: Directory containing optimal_b_s.txt files.
+
 	Return:
 		summary: A multi-level dictionary of parameters and their corresponding
 		limits, bases and areas.
@@ -780,60 +938,102 @@ def summarize_optimal_params(optimal_file):
 
 		for param in params_dict:
 			if param in summary:
-				summary[param]['limits'].append(limit)
-				summary[param]['bases'].append(params_dict[param])
+				summary[param]["limits"].append(limit)
+				summary[param]["bases"].append(params_dict[param])
 			else:
-				summary[param] = {'limits': [limit], \
-												'bases': [params_dict[param]]}
+				summary[param] = {"limits": [limit], \
+												"bases": [params_dict[param]]}
 
 	fd.close()
 
-	params = summary.keys()
-	for p in params:
-		summary[p]['area'] = area(summary[p]['limits'], summary[p]['bases'])
+	for param in summary:
+		summary[param]["area"] = area(summary[param]["limits"], \
+														summary[param]["bases"])
 
-	max_area = max([summary[p]['area'] for p in params])
-	for p in params:
-		if summary[p]['area'] < max_area:
-			summary.pop(p)
+	optimal = {"area": max([summary[param]["area"] for param in summary])}
+	alpha_betas = set()
 
-	return summary
+	for param in summary:
+		if summary[param]["area"] >= optimal["area"]:
+			limits = tuple(summary[param]["limits"])
+			bases = tuple(summary[param]["bases"])
+			lb = tuple([limits, bases])
+			alpha_betas.add(param)
+
+			if lb in optimal:
+				optimal[lb].append(param)
+			else:
+				optimal[lb] = [param]
+
+	# find_optimal_thresholds(rawdir, optimal_file.split("_")[-1], alpha_betas)
+	# return optimal
+	return alpha_betas
 
 
 def summarize_all_optimal_params(optimal_dir):
+	'''INTERFACE:
+
+	Args:
+		optimal_dir: Directory containing outputs of find_optimal_abs.
+	'''
 	summaries = {}
 
 	for optimal_file in os.listdir(optimal_dir):
 		summaries[optimal_file.strip(".txt")] = \
 					summarize_optimal_params(optimal_dir + "/" + optimal_file)
 
-	'''
-	limits = sorted(summaries["r_exp_33"].keys())
-	print "\t", "\t".join(limits)
-	for s in sorted(summaries.keys()):
-		line = s
-		for l in limits:
-			line += "\t" + str(summaries[s][l])
-		print line
-	'''
+	for model in summaries:
+		output = model + "\t" + str(summaries[model]["area"])
+		for key in summaries[model]:
+			if key != "area":
+				output += "\t" + str(key[1])
+		print output
 
 
-'''
-Common + Diff ads.
-for i in range(0, 91):
-	print i
-	for j in [9, 33, 72, 90]:
-		base_ads = adLib.load_ads("results/dumped_ads/base/base_" + str(i) + \
-																		".txt")
-		shadow_ads = adLib.load_ads("results/dumped_ads/shadow/shadow_" + \
-																str(j) + ".txt")
-		common_ads = adOps.intersection([base_ads, shadow_ads])
-		adOps.difference(base_ads, common_ads)
-		adLib.dump_ads([base_ads, common_ads], \
-						"results/dumped_ads/analyzed/analyzed_" + str(i) + \
-						"_" + str(j) + ".txt")
-'''
+def find_optimal_params(optimal_abs_file, rawdir, file_suffix):
+	alpha_betas = summarize_optimal_params(optimal_abs_file, rawdir)
+	all_f_measures = []
+	optimals = {}
 
+	for ab in alpha_betas:
+		optimals[ab] = {}
+
+	for filename in os.listdir(rawdir):
+		if not filename.endswith(file_suffix):
+			continue
+
+		f_measures = threshold_f_measures(rawdir + "/" + filename, alpha_betas)
+		all_f_measures.append(f_measures)
+
+		for ab in f_measures:
+			for t in f_measures[ab]:
+				if t not in optimals[ab]:
+					optimals[ab][t] = 0
+
+	for f_measures in all_f_measures:
+		for ab in f_measures:
+			for t in optimals[ab]:
+				if t in f_measures[ab]:
+					optimals[ab][t] += f_measures[ab][t]
+				else:
+					smaller_ts = []
+
+					for t2 in f_measures[ab]:
+						if t2 <= t:
+							smaller_ts.append(t2)
+
+					if len(smaller_ts) > 0:
+						optimals[ab][t] += f_measures[ab][max(smaller_ts)]
+
+	for ab in optimals:
+		max_f_measure = max(optimals[ab].values())
+		max_ts = []
+
+		for t in optimals[ab]:
+			if optimals[ab][t] >= max_f_measure:
+				max_ts.append(t)
+
+		print ab, max_ts, max_f_measure
 
 # churn(sys.argv[1], sys.argv[2])
 # plot_churn(sys.argv[2])
@@ -848,6 +1048,15 @@ for i in range(0, 91):
 # compute_prs(sys.argv[1])
 # show_verifications(sys.argv[1])
 # dump_all_ads(sys.argv[1], sys.argv[2])
-# find_optimal_params(sys.argv[1], sys.argv[2])
-# summarize_optimal_params(sys.argv[1])
+# find_optimal_abs(sys.argv[1], sys.argv[2])
+# find_optimal_thresholds(sys.argv[1])
+# summarize_optimal_params(sys.argv[1], sys.argv[2])
 # summarize_all_optimal_params(sys.argv[1])
+# find_optimal_params(sys.argv[1], sys.argv[2], sys.argv[3])
+'''
+dirname = "results/dumped_ads/analyzed"
+for filename in os.listdir(dirname):
+	if "_33.txt" in filename:
+		# compute_prs(dirname + "/" + filename)
+		show_verifications(dirname + "/" + filename)
+'''

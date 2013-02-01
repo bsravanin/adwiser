@@ -2,12 +2,14 @@ GOALS
 Why was an ad shown?
 	Was it targeted on a D or a R/X?
 	If targeted on a D, which D?
+	Predict these while maximizing precision and recall, using minimal number of shadow accounts.
 
 
 ASSUMPTIONS
 If targeted on at least one email thread (found in ccloudauditor2* or not found in ccloudauditor1*): Ds
 Else if targeted on os, browser, gmail, location, career, cars, money, music, future event (black friday): Xs
 Else if rarely repeated with and across accounts: Rs
+
 
 KNOWLEDGE
 Some ads are targeted on Ds (emails).
@@ -16,20 +18,36 @@ Targeted ads are repeated across accounts with common Ds.
 Xs are repeated across similar accounts even with no common Ds.
 
 
-GRAPHS
-Performance of a model Vs varying number of shadow trials.
-
-
 TODOS
-False positives and false negatives in alpha^b * beta^c.
-When do and don't precision Vs recall graphs make sense.
-Selenium parallel.
+Falses in predicting T-Vs-U and Ds.
+	Why are precision and recall not 1?
+	What are the common kinds of problems?
+	(How) can they be overcome?
+New accounts
+	More data (real vs synthetic) -- Decided that it should be synthetic, non-ambiguous.
+	New structure
+		i accounts containing D and not containing D, i = 1, 2, 3, ... ?
+		"Load balanced"
+		Fix number of accounts? Number of emails per account? Something else? What are the properties?
+		Randomness is good.
+		Permutations, simulations, whatever works and is easy/simple to try out.
+		GRAPH Performance Vs varying number of shadow accounts. (Same (alpha, beta, threshold)?)
+		Goal is to find the minimum number of accounts we can get away with.
+New avenues
+	Without logging in (without accounts).
+	Is history impacting ads (not just results)?
+	May need to use different machines.
+	Web searches (Are web searches useful to determine targeted Vs untargeted?)
+	Browsing history (Ads in other pages)
+	GOOD IDEA NOT FEASIBLE: To check whether ads are targeted on some content, post the content in a new private/empty circle. Are there private pages with ads?
 
 LOWPRI TODOS
-What is a better experiment setup? What mails in mailbox of real account? What division of mails in shadow accounts?
-What makes a good scoring model for predictions?
+PENDING When do and don't precision Vs recall graphs make sense.
+GRAPH Performance Vs varying number of shadow trials. (Same (alpha, beta, threshold)?)
+What other good scoring models are possible? (Weighted models.)
 Improve ad matching. May be more complicated, but to increase precision while not sacrificing recall.
-Predict Ds.
+Selenium parallel.
+Are ads a function of time or number of access of an email?
 
 
 DONE
@@ -63,7 +81,12 @@ DONE
 18. Ad dumps for individual base, cumulative shadow, common + diff.
 19. Precision and recall for various model, alpha, beta, threshold combinations for each base trials.
 20. A more methodical manner of identifying optimal parameters. Based on area under (precision+recall limit) and base trials.
-
+21. Done with (alpha, beta, thresholds) for all models.
+22. Equivalence of models.
+23. Predict Ds.
+24. Nico Viennot implemented a way to create many accounts using mechanical turks.
+25. Average precision and recall across base trials.
+26. Optimal parameters using F-measure.
 
 LOWPRI DONE
 1. Describe args and returns along with the purpose for all functions.

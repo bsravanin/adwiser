@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 18th January, 2013
+Date: 1st February, 2013
 Purpose: To try out different heuristics to predict which Ds the ads are being
 targeted on.
 '''
@@ -441,17 +441,32 @@ def verify_pred(predicted_ds_of_ad, true_ds_of_ad, threshold):
 		if predicted_ds_of_ad[d] >= threshold:
 			prediction.add(d)
 
+	# print "DEBUG", len(prediction)
 	'''
 	# Predicting only max_confidence Ds. Needs max_score function to be used.
 	if predicted_ds_of_ad["score"] >= threshold:
 		prediction = predicted_ds_of_ad["ds"]
 	'''
 
-	result = {}
+	result = {"tps": 0, "fps": 0, "fns": 0, "tns": 0}
+
+	'''
 	result["tps"] = len(prediction & true_ds_of_ad["d_s"])
 	result["fps"] = len(prediction & (all_ds - true_ds_of_ad["d_s"]))
 	result["fns"] = len((all_ds - prediction) & true_ds_of_ad["d_s"])
 	result["tns"] = len((all_ds - prediction) & (all_ds - true_ds_of_ad["d_s"]))
+	'''
+	right = len(prediction & true_ds_of_ad["d_s"])
+	wrong = len(prediction & (all_ds - true_ds_of_ad["d_s"]))
+	missed = len((all_ds - prediction) & true_ds_of_ad["d_s"])
+
+	if right > 0:
+		result["tps"] = 1
+	elif (wrong + missed) == 0:
+		result["tns"] = 1
+	else:
+		result["fps"] = float(wrong) / (wrong + missed)
+		result["fns"] = float(missed) / (wrong + missed)
 
 	if len(prediction) > 0 and true_ds_of_ad["type"] == "D":
 		result["targeted"] = "tps"
@@ -608,13 +623,9 @@ def aggregate_verifications(adwiser, pr=False):
 						targeted[key] += 1
 
 					aggregate["targeted"] = compute_stats(targeted)
-
-					if pr:
-						precision = aggregate["targeted"]["precision"]
-						recall = aggregate["targeted"]["recall"]
-						print model, alpha, beta, threshold, precision, recall
-
 					aggregates[model][alpha][beta][threshold] = \
 													compute_stats(aggregate)
+					if pr:
+						print model, alpha, beta, threshold, aggregate["targeted"]["precision"], aggregate["targeted"]["recall"], aggregate["targeted"]["accuracy"], aggregate["targeted"]["tnr"], aggregate["precision"], aggregate["recall"], aggregate["accuracy"], aggregate["tnr"]
 
 	return aggregates

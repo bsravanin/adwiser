@@ -29,10 +29,10 @@ MODELS = ["p_agg", "p_exp", "p_r_agg", "p_r_agg2", "p_r_exp", "p_r_exp2", \
 ALPHAS = adLib.float_range(0, 1, 0.1)
 BETAS = adLib.float_range(0, 1, 0.1)
 THRESHOLDS = adLib.float_range(0, 0.1, 0.01)
+ALPHAS = [0.1]
+BETAS = [0.72]
+THRESHOLDS = [0.0722204136309]
 
 MODELS = ["p_exp"]
-ALPHAS = [0.1]
-BETAS = [0.7]
-THRESHOLDS = [0.08]
 
 MAX_PLOTS_PER_PNG = 6
