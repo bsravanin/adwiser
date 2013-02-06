@@ -1,7 +1,7 @@
 #! /usr/bin/python
 '''
 Name: Sravan Bhamidipati
-Date: 1st February, 2013
+Date: 5th February, 2013
 Purpose: To do different experiments on the collected logs. Functions annotated
 with "INTERFACE" are high-level and can be called by the user. Functions
 annotated with "INTERNAL" are internal ones which may be called by the interface
@@ -10,7 +10,7 @@ functions.
 
 
 import adAnalyzer, adLib, adOps, adParser
-import ast, os, pylab, re, sys
+import ast, os, itertools, pylab, random, re, sys
 
 
 def make_dir(dirpath):
@@ -657,6 +657,12 @@ def show_verifications(ads_file):
 
 
 def dump_all_ads(conf_file, results_dir):
+	'''INTERFACE: Dump all ads in base trials and cumulative shadow trials.
+
+	Args:
+		conf_file: Config file like "accounts.cf".
+		results_dir: Directory into which the ads are to be dumped into.
+	'''
 	file_sets = adParser.parse_conf("accounts.cf")
 	shadow_ads = []
 
@@ -671,7 +677,8 @@ def dump_all_ads(conf_file, results_dir):
 		shadow_file_set = adParser.get_file_set(file_sets, i, "ccloudauditor10")
 		sads = adParser.parse_html_set(shadow_file_set)
 		shadow_ads = adOps.union([shadow_ads, sads])
-		adLib.dump_ads(shadow_ads, results_dir + "/shadow/shadow_" + str(i) + ".txt")
+		adLib.dump_ads(shadow_ads, results_dir + "/shadow/shadow_" + str(i) + \
+																		".txt")
 		print i, len(base_ads), len(sads), len(shadow_ads)
 
 
@@ -877,6 +884,7 @@ def find_optimal_thresholds(rawdir, file_suffix, alpha_betas):
 
 
 def f_measure(precision, recall):
+	'''INTERNAL: Return F-measure from precision and recall.'''
 	beta = 1
 	return precision*recall / ((beta*beta*precision) + recall)
 
@@ -991,6 +999,16 @@ def summarize_all_optimal_params(optimal_dir):
 
 
 def find_optimal_params(optimal_abs_file, rawdir, file_suffix):
+	'''INTERFACE: Find optimal (alpha, beta, threshold) tuples based on their
+	average F-measures across all base trials.
+
+	Args:
+		optimal_abs_file: File containing precision and recall limits and a
+		stringified dictionary of (alpha, beta) tuples and their corresponding
+		number of base trials. e.g. "results/optimal/p_exp_33.txt"
+		rawdir: Directory containing optimal_b_s.txt files.
+		file_suffix: Suffix of the optimal_b_s.txt files which'ld be considered.
+	'''
 	alpha_betas = summarize_optimal_params(optimal_abs_file, rawdir)
 	all_f_measures = []
 	optimals = {}
@@ -1035,6 +1053,110 @@ def find_optimal_params(optimal_abs_file, rawdir, file_suffix):
 
 		print ab, max_ts, max_f_measure
 
+
+def dist_score(d_s, dist):
+	'''Find the score from a list of mails and a distribution into shadow
+	accounts.
+
+	Args:
+		d_s: List of mails.
+		dist: Set of sets.
+	Return:
+		score: An integer.
+	'''
+	score = 1
+
+	for d in d_s:
+		present = 0
+		absent = 0
+
+		for sa in dist:
+			if d in sa:
+				present += 1.0/len(sa)
+			else:
+				absent += 1
+
+		if present == 0 or absent == 0:
+			return 0
+		else:
+			score *= present * absent
+
+	return score
+
+
+def distributions(d_count, accounts, iterations):
+	'''Print best possible distributions of "d_count" emails into "accounts"
+	shadow accounts by trying a given number of random iterations.
+
+	Args:
+		d_count: Number of emails.
+		accounts: Number of shadow accounts.
+	'''
+	d_s = range(1, d_count + 1)
+	dists = {}
+
+	'''
+	choices = range(1, d_count)
+	i = 0
+	while i <= iterations:
+		dist = set()
+
+		while len(dist) < accounts:
+			count = random.choice(choices)
+			account = random.sample(d_s, count)
+			dist.add(frozenset(account))
+
+		score = dist_score(d_s, dist)
+		if score > 0:
+			dist = frozenset(dist)
+
+			if score in dists:
+				if dist not in dists[score]:
+					dists[score].add(dist)
+					i += 1
+			else:
+				dists[score] = set([dist])
+				i += 1
+	'''
+
+	combos = []
+	atypes = {}
+
+	for i in range(1, d_count):
+		for j in itertools.combinations(d_s, i):
+			combos.append(j)
+
+	for dist in itertools.islice(itertools.combinations(combos, accounts), 10000000):
+		mails = []
+		mail_counts = []
+		for sa in dist:
+			mails.extend(sa)
+			mail_counts.append(len(sa))
+
+		if len(set(mails)) < d_count:
+			continue
+		else:
+			# atype = (tuple(sorted(mail_counts)), tuple(sorted(mails)))
+			atype = (tuple(sorted(mail_counts)), frozenset(mails))
+			if atype in atypes:
+				continue
+			else:
+				atypes[atype] = 1
+
+		score = dist_score(d_s, dist)
+
+		if score > 0:
+			if score not in dists:
+				dists[score] = set([dist])
+			dists[score].add(dist)
+
+	max_score = max(dists.keys())
+
+	print "MAX", max_score
+	for dist in dists[max_score]:
+		print dist
+
+
 # churn(sys.argv[1], sys.argv[2])
 # plot_churn(sys.argv[2])
 # all_ads(sys.argv[1])
@@ -1053,10 +1175,7 @@ def find_optimal_params(optimal_abs_file, rawdir, file_suffix):
 # summarize_optimal_params(sys.argv[1], sys.argv[2])
 # summarize_all_optimal_params(sys.argv[1])
 # find_optimal_params(sys.argv[1], sys.argv[2], sys.argv[3])
-'''
-dirname = "results/dumped_ads/analyzed"
-for filename in os.listdir(dirname):
-	if "_33.txt" in filename:
-		# compute_prs(dirname + "/" + filename)
-		show_verifications(dirname + "/" + filename)
-'''
+# distributions(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+print dist_score(range(1, 11), ((1, 2, 3), (4, 5, 6), (7, 8, 9, 10)))
+print dist_score(range(1, 11), ((1, 2, 9), (3, 4, 10), (5, 6), (7, 8)))
+print dist_score(range(1, 11), ((1, 2), (3, 4, 1), (5, 6), (7, 8), (9, 10)))

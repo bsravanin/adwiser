@@ -626,6 +626,6 @@ def aggregate_verifications(adwiser, pr=False):
 					aggregates[model][alpha][beta][threshold] = \
 													compute_stats(aggregate)
 					if pr:
-						print model, alpha, beta, threshold, aggregate["targeted"]["precision"], aggregate["targeted"]["recall"], aggregate["targeted"]["accuracy"], aggregate["targeted"]["tnr"], aggregate["precision"], aggregate["recall"], aggregate["accuracy"], aggregate["tnr"]
+						print model, alpha, beta, threshold, aggregate
 
 	return aggregates
